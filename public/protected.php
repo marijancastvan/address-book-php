@@ -8,6 +8,8 @@ require_once dirname(__DIR__) . '/app/auth.php';
 if (!isAuthenticated()) {
     redirectTo('/login.php');
 }
+
+redirectTo('/dashboard.php');
 ?>
 <!doctype html>
 <html lang="sr">

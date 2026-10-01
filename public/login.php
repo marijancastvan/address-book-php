@@ -6,7 +6,7 @@ require_once dirname(__DIR__) . '/app/bootstrap.php';
 require_once dirname(__DIR__) . '/app/auth.php';
 
 if (isAuthenticated()) {
-    redirectTo('/protected.php');
+    redirectTo('/dashboard.php');
 }
 
 $errors = [];
@@ -25,7 +25,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } else {
         try {
             if (attemptLogin($email, $password)) {
-                redirectTo('/protected.php');
+                redirectTo('/dashboard.php');
             }
 
             $errors[] = 'Email ili lozinka nisu ispravni.';

@@ -17,7 +17,7 @@ require_once dirname(__DIR__) . '/app/auth.php';
         <h1>Address Book – PHP Clone</h1>
         <p>PHP aplikacija je pokrenuta.</p>
         <?php if (isAuthenticated()): ?>
-            <p><a href="/protected.php">Privremena zaštićena stranica</a></p>
+            <p><a href="/dashboard.php">Dashboard</a></p>
             <form action="/logout.php" method="post">
                 <button type="submit">Odjavi se</button>
             </form>

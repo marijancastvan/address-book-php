@@ -6,13 +6,10 @@ function contactFormValues(array $source): array
 {
     $values = [];
 
-    foreach (['first_name', 'last_name', 'phone', 'email'] as $field) {
+    foreach (['first_name', 'last_name', 'phone', 'email', 'city_id'] as $field) {
         $value = $source[$field] ?? '';
         $values[$field] = is_scalar($value) ? trim((string) $value) : '';
     }
-
-    $cityId = $source['city_id'] ?? '';
-    $values['city_id'] = is_scalar($cityId) ? trim((string) $cityId) : '';
 
     return $values;
 }
@@ -28,45 +25,37 @@ function validateContactValues(array $values): array
 {
     $errors = [];
     $limits = [
-        'first_name' => ['label' => 'Ime', 'max' => 100],
-        'last_name' => ['label' => 'Prezime', 'max' => 100],
-        'phone' => ['label' => 'Telefon', 'max' => 50],
-        'email' => ['label' => 'Email', 'max' => 255],
+        'first_name' => ['required' => 'Ime je obavezno.', 'label' => 'Ime', 'max' => 100],
+        'last_name' => ['required' => 'Prezime je obavezno.', 'label' => 'Prezime', 'max' => 100],
+        'phone' => ['required' => 'Telefon je obavezan.', 'label' => 'Telefon', 'max' => 50],
+        'email' => ['required' => 'Email je obavezan.', 'label' => 'Email', 'max' => 255],
     ];
 
     foreach ($limits as $field => $rule) {
-        $value = $values[$field];
+        $value = $values[$field] ?? '';
 
         if ($value === '') {
-            $errors[] = $rule['label'] . ' je obavezno.';
-            continue;
-        }
-
-        if (preg_match('//u', $value) !== 1) {
-            $errors[] = $rule['label'] . ' sadrži nevažeći tekst.';
-            continue;
-        }
-
-        if (contactCharacterLength($value) > $rule['max']) {
-            $errors[] = $rule['label'] . ' može imati najviše ' . $rule['max'] . ' karaktera.';
+            $errors[$field] = $rule['required'];
+        } elseif (preg_match('//u', $value) !== 1) {
+            $errors[$field] = $rule['label'] . ' sadrži nevažeći tekst.';
+        } elseif (contactCharacterLength($value) > $rule['max']) {
+            $errors[$field] = $rule['label'] . ' može imati najviše ' . $rule['max'] . ' karaktera.';
         }
     }
 
-    if ($values['email'] !== ''
+    if (($values['email'] ?? '') !== ''
         && preg_match('//u', $values['email']) === 1
         && filter_var($values['email'], FILTER_VALIDATE_EMAIL) === false
     ) {
-        $errors[] = 'Email adresa nije ispravna.';
+        $errors['email'] = 'Unesite ispravnu email adresu.';
     }
 
-    $cityId = filter_var($values['city_id'], FILTER_VALIDATE_INT, [
-        'options' => ['min_range' => 1],
-    ]);
-
-    if ($values['city_id'] === '') {
-        $errors[] = 'Morate izabrati grad.';
+    $cityValue = $values['city_id'] ?? '';
+    $cityId = filter_var($cityValue, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
+    if ($cityValue === '') {
+        $errors['city_id'] = 'Izaberite grad.';
     } elseif ($cityId === false) {
-        $errors[] = 'Izabrani grad nije ispravan.';
+        $errors['city_id'] = 'Izaberite grad.';
     }
 
     return $errors;
@@ -74,9 +63,7 @@ function validateContactValues(array $values): array
 
 function getCitiesForUser(PDO $pdo, int $userId): array
 {
-    $statement = $pdo->prepare(
-        'SELECT id, name FROM cities WHERE user_id = :user_id ORDER BY name'
-    );
+    $statement = $pdo->prepare('SELECT id, name FROM cities WHERE user_id = :user_id ORDER BY name');
     $statement->execute(['user_id' => $userId]);
 
     return $statement->fetchAll();
@@ -84,13 +71,8 @@ function getCitiesForUser(PDO $pdo, int $userId): array
 
 function cityBelongsToUser(PDO $pdo, int $cityId, int $userId): bool
 {
-    $statement = $pdo->prepare(
-        'SELECT id FROM cities WHERE id = :city_id AND user_id = :user_id LIMIT 1'
-    );
-    $statement->execute([
-        'city_id' => $cityId,
-        'user_id' => $userId,
-    ]);
+    $statement = $pdo->prepare('SELECT id FROM cities WHERE id = :city_id AND user_id = :user_id LIMIT 1');
+    $statement->execute(['city_id' => $cityId, 'user_id' => $userId]);
 
     return $statement->fetch() !== false;
 }

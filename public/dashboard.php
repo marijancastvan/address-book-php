@@ -25,6 +25,7 @@ if ($user === false) {
 }
 
 $email = (string) $user['email'];
+$activeNavigation = 'dashboard';
 ?>
 <!doctype html>
 <html lang="sr">
@@ -38,11 +39,7 @@ $email = (string) $user['email'];
     <div class="app-shell">
         <aside class="sidebar">
             <a class="brand" href="/dashboard.php">Address Book</a>
-            <nav aria-label="Glavna navigacija">
-                <a class="nav-link active" href="/dashboard.php" aria-current="page">Dashboard</a>
-                <a class="nav-link" href="/contacts.php">Kontakti</a>
-                <a class="nav-link" href="#cities">Gradovi</a>
-            </nav>
+            <?php require dirname(__DIR__) . '/app/views/main-navigation.php'; ?>
             <form action="/logout.php" method="post" class="logout-form">
                 <button class="logout-button" type="submit">Odjava</button>
             </form>
@@ -63,17 +60,16 @@ $email = (string) $user['email'];
             </section>
 
             <section class="feature-grid" aria-label="Delovi aplikacije">
-                <article class="feature-card" id="contacts">
+                <a class="feature-card feature-card-link" href="/contacts.php">
                     <p class="eyebrow">ADRESAR</p>
                     <h2>Kontakti</h2>
                     <p>Pregledajte i uredite svoje kontakte.</p>
-                    <a href="/contacts.php">Otvori kontakte</a>
-                </article>
-                <article class="feature-card" id="cities">
+                </a>
+                <a class="feature-card feature-card-link" href="/cities.php">
                     <p class="eyebrow">LOKACIJE</p>
                     <h2>Gradovi</h2>
-                    <p>Upravljanje gradovima biće dodato u narednoj fazi.</p>
-                </article>
+                    <p>Upravljajte svojim gradovima.</p>
+                </a>
             </section>
         </main>
     </div>

@@ -35,16 +35,41 @@
             <?php endforeach; ?>
 
             <?php $cityFieldId = $formIdPrefix . '-city_id'; $cityError = $errors['city_id'] ?? ''; ?>
-            <div class="field-group">
-                <label for="<?= escapeHtml($cityFieldId) ?>">Grad</label>
-                <select id="<?= escapeHtml($cityFieldId) ?>" name="city_id" required data-required-message="Izaberite grad." aria-describedby="<?= escapeHtml($cityFieldId) ?>-error" <?= $cityError !== '' ? 'aria-invalid="true" class="is-invalid"' : '' ?>>
-                    <option value="">Izaberite grad</option>
-                    <?php foreach ($cities as $city): ?>
-                        <option value="<?= (int) $city['id'] ?>" <?= (string) $city['id'] === (string) $formValues['city_id'] ? 'selected' : '' ?>><?= escapeHtml($city['name']) ?></option>
-                    <?php endforeach; ?>
-                </select>
-                <p class="field-error" id="<?= escapeHtml($cityFieldId) ?>-error" <?= $cityError === '' ? 'hidden' : '' ?>><?= escapeHtml($cityError) ?></p>
-            </div>
+            <?php if (!isset($contactId)): ?>
+                <?php
+                $selectedCityName = '';
+                foreach ($cities as $city) {
+                    if ((string) $city['id'] === (string) $formValues['city_id']) {
+                        $selectedCityName = (string) $city['name'];
+                        break;
+                    }
+                }
+                ?>
+                <div class="field-group city-picker-field">
+                    <label for="contact-create-city-search">Grad</label>
+                    <div class="city-picker-control">
+                        <div class="city-picker-input-wrap">
+                            <input id="contact-create-city-search" type="search" maxlength="255" required value="<?= escapeHtml($selectedCityName) ?>" placeholder="Pretražite grad..." autocomplete="off" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="contact-create-city-options" data-city-name-input data-required-message="Izaberite grad ili dodajte novo mesto." aria-describedby="contact-create-city_id-error contact-create-city-status" <?= $cityError !== '' ? 'aria-invalid="true" class="is-invalid"' : '' ?>>
+                            <div class="city-picker-options" id="contact-create-city-options" role="listbox" aria-label="Rezultati pretrage gradova" hidden></div>
+                        </div>
+                        <button class="button button-secondary" type="button" data-dialog-open="contact-city-create-dialog" data-city-create-open disabled>Dodaj novo mesto</button>
+                    </div>
+                    <input id="contact-create-city_id-value" type="hidden" name="city_id" value="<?= escapeHtml($formValues['city_id']) ?>" data-city-id-value>
+                    <p class="field-error" id="contact-create-city_id-error" <?= $cityError === '' ? 'hidden' : '' ?>><?= escapeHtml($cityError) ?></p>
+                    <p class="city-create-status" id="contact-create-city-status" role="status" aria-live="polite"></p>
+                </div>
+            <?php else: ?>
+                <div class="field-group">
+                    <label for="<?= escapeHtml($cityFieldId) ?>">Grad</label>
+                    <select id="<?= escapeHtml($cityFieldId) ?>" name="city_id" required data-required-message="Izaberite grad." aria-describedby="<?= escapeHtml($cityFieldId) ?>-error" <?= $cityError !== '' ? 'aria-invalid="true" class="is-invalid"' : '' ?>>
+                        <option value="">Izaberite grad</option>
+                        <?php foreach ($cities as $city): ?>
+                            <option value="<?= (int) $city['id'] ?>" <?= (string) $city['id'] === (string) $formValues['city_id'] ? 'selected' : '' ?>><?= escapeHtml($city['name']) ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                    <p class="field-error" id="<?= escapeHtml($cityFieldId) ?>-error" <?= $cityError === '' ? 'hidden' : '' ?>><?= escapeHtml($cityError) ?></p>
+                </div>
+            <?php endif; ?>
 
             <div class="form-actions">
                 <button class="button button-primary" type="submit">Sačuvaj</button>

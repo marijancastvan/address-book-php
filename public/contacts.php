@@ -132,6 +132,7 @@ $activeNavigation = 'contacts';
     <link rel="stylesheet" href="/assets/css/dialogs.css">
     <script src="/assets/js/form-ui.js" defer></script>
     <script src="/assets/js/contacts.js" defer></script>
+    <script src="/assets/js/contact-city-create.js" defer></script>
 </head>
 <body>
     <div class="app-shell">
@@ -233,6 +234,19 @@ $activeNavigation = 'contacts';
                 <button class="button button-secondary" type="button" data-dialog-close>Otkaži</button>
                 <button class="button button-danger" type="submit">Izbriši</button>
             </form>
+        </section>
+    </dialog>
+    <dialog class="app-dialog" id="contact-city-create-dialog" aria-labelledby="contact-city-create-title">
+        <section class="dialog-panel">
+            <header class="dialog-header">
+                <h2 id="contact-city-create-title">Dodavanje mesta</h2>
+                <button class="dialog-close" type="button" data-dialog-close aria-label="Zatvori dijalog">&times;</button>
+            </header>
+            <p data-city-create-confirm-message></p>
+            <div class="form-actions">
+                <button class="button button-secondary" type="button" data-dialog-close>Otkaži</button>
+                <button class="button button-primary" type="button" data-city-create-confirm>Dodaj mesto</button>
+            </div>
         </section>
     </dialog>
 </body>

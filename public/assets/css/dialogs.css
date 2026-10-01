@@ -103,6 +103,91 @@ dialog.app-dialog::backdrop {
     display: none;
 }
 
+.city-picker-control {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: start;
+    gap: 8px;
+}
+
+.city-picker-control input {
+    min-width: 0;
+}
+
+.city-picker-input-wrap {
+    position: relative;
+    min-width: 0;
+}
+
+.city-picker-options {
+    position: absolute;
+    z-index: 5;
+    top: calc(100% + 4px);
+    right: 0;
+    left: 0;
+    max-height: 220px;
+    overflow-y: auto;
+    border: 1px solid #cbd5e1;
+    border-radius: 8px;
+    background: #fff;
+    box-shadow: 0 10px 24px rgb(15 23 42 / 14%);
+}
+
+.city-picker-options[hidden] {
+    display: none;
+}
+
+.city-picker-option {
+    display: block;
+    width: 100%;
+    padding: 10px 12px;
+    border: 0;
+    color: inherit;
+    background: #fff;
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+}
+
+.city-picker-option:hover,
+.city-picker-option:focus {
+    outline: none;
+    background: #eff6ff;
+}
+
+.city-picker-empty {
+    margin: 0;
+    padding: 11px 12px;
+    color: #526078;
+    font-size: 14px;
+}
+
+.city-picker-control button {
+    white-space: nowrap;
+}
+
+.city-picker-control button:disabled {
+    cursor: not-allowed;
+    opacity: .6;
+}
+
+.city-create-status:not(:empty) {
+    margin: 0;
+    font-size: 14px;
+}
+
+.city-create-status[data-state="success"] {
+    color: #166534;
+}
+
+.city-create-status[data-state="info"] {
+    color: #1e3a8a;
+}
+
+.city-create-status[data-state="error"] {
+    color: #b42318;
+}
+
 .contact-form .form-actions,
 .city-form .form-actions {
     margin-top: 20px;
@@ -111,5 +196,15 @@ dialog.app-dialog::backdrop {
 @media (prefers-reduced-motion: reduce) {
     dialog.app-dialog::backdrop {
         backdrop-filter: none;
+    }
+}
+
+@media (max-width: 480px) {
+    .city-picker-control {
+        grid-template-columns: 1fr;
+    }
+
+    .city-picker-control button {
+        justify-self: start;
     }
 }

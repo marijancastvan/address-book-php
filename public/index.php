@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 require_once dirname(__DIR__) . '/app/bootstrap.php';
+require_once dirname(__DIR__) . '/app/auth.php';
 ?>
 <!doctype html>
 <html lang="sr">
@@ -15,6 +16,14 @@ require_once dirname(__DIR__) . '/app/bootstrap.php';
     <main>
         <h1>Address Book – PHP Clone</h1>
         <p>PHP aplikacija je pokrenuta.</p>
+        <?php if (isAuthenticated()): ?>
+            <p><a href="/protected.php">Privremena zaštićena stranica</a></p>
+            <form action="/logout.php" method="post">
+                <button type="submit">Odjavi se</button>
+            </form>
+        <?php else: ?>
+            <p><a href="/login.php">Prijava</a> | <a href="/register.php">Registracija</a></p>
+        <?php endif; ?>
     </main>
 </body>
 </html>

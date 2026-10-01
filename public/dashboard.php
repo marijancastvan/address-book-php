@@ -40,7 +40,7 @@ $email = (string) $user['email'];
             <a class="brand" href="/dashboard.php">Address Book</a>
             <nav aria-label="Glavna navigacija">
                 <a class="nav-link active" href="/dashboard.php" aria-current="page">Dashboard</a>
-                <a class="nav-link" href="#contacts">Kontakti</a>
+                <a class="nav-link" href="/contacts.php">Kontakti</a>
                 <a class="nav-link" href="#cities">Gradovi</a>
             </nav>
             <form action="/logout.php" method="post" class="logout-form">
@@ -66,7 +66,8 @@ $email = (string) $user['email'];
                 <article class="feature-card" id="contacts">
                     <p class="eyebrow">ADRESAR</p>
                     <h2>Kontakti</h2>
-                    <p>Upravljanje kontaktima biće dodato u narednoj fazi.</p>
+                    <p>Pregledajte i uredite svoje kontakte.</p>
+                    <a href="/contacts.php">Otvori kontakte</a>
                 </article>
                 <article class="feature-card" id="cities">
                     <p class="eyebrow">LOKACIJE</p>

@@ -7,26 +7,73 @@ require_once dirname(__DIR__) . '/app/auth.php';
 require_once dirname(__DIR__) . '/app/contact-helpers.php';
 
 if (!isAuthenticated()) {
+    if (($_GET['format'] ?? '') === 'json') {
+        http_response_code(401);
+        header('Content-Type: application/json; charset=utf-8');
+        header('Cache-Control: no-store');
+        echo json_encode(['error' => 'Sesija je istekla. Prijavite se ponovo.'], JSON_UNESCAPED_UNICODE);
+        exit;
+    }
     redirectTo('/login.php');
 }
 
 $userId = currentUserId();
+$isJsonRequest = ($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'GET' && ($_GET['format'] ?? '') === 'json';
+$searchInput = $_GET['search'] ?? '';
+$searchTerm = is_scalar($searchInput) ? trim((string) $searchInput) : '';
 try {
     $pdo = db();
-    $statement = $pdo->prepare(
-        'SELECT contacts.id, contacts.first_name, contacts.last_name, contacts.phone,
-                contacts.email, contacts.city_id, cities.name AS city_name
-         FROM contacts
-         INNER JOIN cities ON cities.id = contacts.city_id
-         WHERE contacts.user_id = :user_id
-         ORDER BY contacts.last_name, contacts.first_name'
-    );
-    $statement->execute(['user_id' => $userId]);
+    $sql = 'SELECT contacts.id, contacts.first_name, contacts.last_name, contacts.phone,
+                   contacts.email, contacts.city_id, cities.name AS city_name
+            FROM contacts
+            INNER JOIN cities ON cities.id = contacts.city_id
+            WHERE contacts.user_id = :user_id';
+    $parameters = ['user_id' => $userId];
+
+    if ($searchTerm !== '') {
+        $sql .= ' AND (
+            contacts.first_name LIKE :first_name_search
+            OR contacts.last_name LIKE :last_name_search
+            OR contacts.phone LIKE :phone_search
+            OR contacts.email LIKE :email_search
+        )';
+        $searchPattern = '%' . $searchTerm . '%';
+        $parameters += [
+            'first_name_search' => $searchPattern,
+            'last_name_search' => $searchPattern,
+            'phone_search' => $searchPattern,
+            'email_search' => $searchPattern,
+        ];
+    }
+
+    $sql .= ' ORDER BY contacts.last_name, contacts.first_name';
+    $statement = $pdo->prepare($sql);
+    $statement->execute($parameters);
     $contacts = $statement->fetchAll();
+    if ($isJsonRequest) {
+        $jsonContacts = array_map(static fn (array $contact): array => [
+            'id' => (int) $contact['id'],
+            'first_name' => (string) $contact['first_name'],
+            'last_name' => (string) $contact['last_name'],
+            'phone' => (string) $contact['phone'],
+            'email' => (string) $contact['email'],
+            'city_name' => (string) $contact['city_name'],
+        ], $contacts);
+        header('Content-Type: application/json; charset=utf-8');
+        header('Cache-Control: no-store');
+        echo json_encode(['contacts' => $jsonContacts], JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE);
+        exit;
+    }
     $cities = getCitiesForUser($pdo, $userId);
 } catch (PDOException $exception) {
     error_log('Contacts list database error: ' . $exception->getMessage());
     http_response_code(500);
+    if ($isJsonRequest) {
+        header('Content-Type: application/json; charset=utf-8');
+        header('Cache-Control: no-store');
+        echo json_encode(['error' => 'Kontakti trenutno nisu dostupni. Pokušajte ponovo kasnije.'], JSON_UNESCAPED_UNICODE);
+        exit;
+    }
     exit('Kontakti trenutno nisu dostupni. Pokušajte ponovo kasnije.');
 }
 
@@ -84,6 +131,7 @@ $activeNavigation = 'contacts';
     <link rel="stylesheet" href="/assets/css/contacts.css">
     <link rel="stylesheet" href="/assets/css/dialogs.css">
     <script src="/assets/js/form-ui.js" defer></script>
+    <script src="/assets/js/contacts.js" defer></script>
 </head>
 <body>
     <div class="app-shell">
@@ -104,7 +152,21 @@ $activeNavigation = 'contacts';
             <?php if ($successMessage !== null): ?><p class="message message-success" role="status"><?= escapeHtml($successMessage) ?></p><?php endif; ?>
             <?php if ($errorMessage !== null): ?><p class="message message-error" role="alert"><?= escapeHtml($errorMessage) ?></p><?php endif; ?>
 
-            <?php if ($contacts === []): ?>
+            <form class="contact-search" method="get" action="/contacts.php" role="search">
+                <div class="search-field">
+                    <label for="contact-search">Pretraži kontakte</label>
+                    <input id="contact-search" name="search" type="search" value="<?= escapeHtml($searchTerm) ?>" placeholder="Ime, prezime, telefon ili email..." autocomplete="off" aria-controls="contact-results">
+                </div>
+            </form>
+            <p class="search-status" id="contact-search-status" role="status" aria-live="polite"></p>
+
+            <div id="contact-results" class="contact-results" aria-live="polite" aria-busy="false">
+            <?php if ($searchTerm !== '' && $contacts === []): ?>
+                <section class="empty-state">
+                    <h2>Nema rezultata</h2>
+                    <p>Nema kontakata koji odgovaraju pretrazi.</p>
+                </section>
+            <?php elseif ($contacts === []): ?>
                 <section class="empty-state">
                     <h2>Još nema kontakata</h2>
                     <p>Trenutno nemate nijedan kontakt.</p>
@@ -123,7 +185,7 @@ $activeNavigation = 'contacts';
                                     <td data-label="Email"><?= escapeHtml($contact['email']) ?></td>
                                     <td data-label="Grad"><?= escapeHtml($contact['city_name']) ?></td>
                                     <td data-label="Akcije"><div class="row-actions">
-                                        <a class="button button-small button-secondary" href="/contacts.php?edit_id=<?= (int) $contact['id'] ?>">Izmeni</a>
+                                        <a class="button button-small button-secondary" href="/contacts.php?edit_id=<?= (int) $contact['id'] ?>&amp;search=<?= rawurlencode($searchTerm) ?>">Izmeni</a>
                                         <button class="button button-small button-danger" type="button" data-confirm-open="contact-delete-dialog" data-delete-id="<?= (int) $contact['id'] ?>">Izbriši</button>
                                     </div></td>
                                 </tr>
@@ -132,6 +194,7 @@ $activeNavigation = 'contacts';
                     </table>
                 </div>
             <?php endif; ?>
+            </div>
         </main>
     </div>
 

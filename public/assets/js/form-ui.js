@@ -13,24 +13,27 @@
         dialog.querySelector('[autofocus]')?.focus();
     };
 
-    document.querySelectorAll('[data-dialog-open]').forEach((trigger) => {
-        trigger.addEventListener('click', () => {
-            openDialog(document.getElementById(trigger.dataset.dialogOpen));
-        });
-    });
+    document.addEventListener('click', (event) => {
+        const target = event.target;
+        const closeTrigger = target.closest('[data-dialog-close]');
+        if (closeTrigger) {
+            closeTrigger.closest('dialog')?.close();
+            return;
+        }
 
-    document.querySelectorAll('[data-confirm-open]').forEach((trigger) => {
-        trigger.addEventListener('click', () => {
-            const dialog = document.getElementById(trigger.dataset.confirmOpen);
+        const confirmTrigger = target.closest('[data-confirm-open]');
+        if (confirmTrigger) {
+            const dialog = document.getElementById(confirmTrigger.dataset.confirmOpen);
             const idField = dialog?.querySelector('[data-confirm-id]');
-
-            if (idField) idField.value = trigger.dataset.deleteId || '';
+            if (idField) idField.value = confirmTrigger.dataset.deleteId || '';
             openDialog(dialog);
-        });
-    });
+            return;
+        }
 
-    document.querySelectorAll('[data-dialog-close]').forEach((trigger) => {
-        trigger.addEventListener('click', () => trigger.closest('dialog')?.close());
+        const openTrigger = target.closest('[data-dialog-open]');
+        if (openTrigger) {
+            openDialog(document.getElementById(openTrigger.dataset.dialogOpen));
+        }
     });
 
     dialogs.forEach((dialog) => {

@@ -1,0 +1,26 @@
+# Local secrets and environment configuration
+/app/config/config.local.php
+/.env
+/.env.*
+!/.env.example
+
+# IDE and operating system files
+/.idea/
+/.vscode/
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# Temporary and generated files
+/tmp/
+/temp/
+/logs/
+*.log
+*.tmp
+*.swp
+*.swo
+*.bak
+
+# Dependencies and test artifacts (not currently used)
+/vendor/
+/coverage/

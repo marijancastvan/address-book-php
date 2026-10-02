@@ -33,6 +33,17 @@
     padding-inline: 18px;
 }
 
+.contacts-header-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.contacts-header-actions > .button {
+    min-height: 46px;
+    padding-inline: 18px;
+}
+
 .search-status:empty {
     display: none;
 }
@@ -119,5 +130,11 @@
     .contact-search {
         align-items: stretch;
         padding: 13px;
+    }
+
+    .contacts-header-actions {
+        width: 100%;
+        flex-direction: column;
+        align-items: stretch;
     }
 }

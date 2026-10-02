@@ -135,6 +135,7 @@ $activeNavigation = 'contacts';
     <script src="/assets/js/contacts.js" defer></script>
     <script src="/assets/js/contact-city-create.js" defer></script>
     <script src="/assets/js/form-submit-state.js" defer></script>
+    <script src="/assets/js/contact-generator.js" defer></script>
 </head>
 <body>
     <div class="app-shell">
@@ -149,11 +150,15 @@ $activeNavigation = 'contacts';
         <main class="main-content">
             <header class="page-header">
                 <div><p class="eyebrow">ADRESAR</p><h1>Kontakti</h1></div>
-                <button class="button button-primary" type="button" data-dialog-open="contact-create-dialog">Dodaj kontakt</button>
+                <div class="contacts-header-actions">
+                    <button class="button button-primary" type="button" data-dialog-open="contact-create-dialog">Dodaj kontakt</button>
+                    <button class="button button-secondary" type="button" data-dialog-open="contact-generator-dialog">KREIRAJ DUMMY</button>
+                </div>
             </header>
 
             <?php if ($successMessage !== null): ?><p class="message message-success" role="status"><?= escapeHtml($successMessage) ?></p><?php endif; ?>
             <?php if ($errorMessage !== null): ?><p class="message message-error" role="alert"><?= escapeHtml($errorMessage) ?></p><?php endif; ?>
+            <p class="message message-success" id="contact-generator-success" role="status" aria-live="polite" hidden></p>
 
             <form class="contact-search" method="get" action="/contacts.php" role="search">
                 <div class="search-field">
@@ -224,6 +229,29 @@ $activeNavigation = 'contacts';
         require dirname(__DIR__) . '/app/views/contact-form.php';
     }
     ?>
+    <dialog class="app-dialog" id="contact-generator-dialog" aria-labelledby="contact-generator-title">
+        <section class="dialog-panel">
+            <header class="dialog-header">
+                <h2 id="contact-generator-title">Generiši test kontakte</h2>
+                <button class="dialog-close" type="button" data-dialog-close aria-label="Zatvori dijalog">&times;</button>
+            </header>
+            <p>Izaberite broj testnih kontakata koje želite da dodate u svoj adresar.</p>
+            <?php if ($cities === []): ?>
+                <p class="message message-info" role="status">Pre generisanja kontakata morate imati najmanje jedan grad.</p>
+            <?php endif; ?>
+            <p class="message message-error" id="contact-generator-error" data-contact-generator-error role="alert" hidden></p>
+            <form class="contact-form" method="post" action="/contact-generate.php" data-contact-generator novalidate>
+                <div class="field-group">
+                    <label for="contact-generator-count">Broj kontakata</label>
+                    <input id="contact-generator-count" name="count" type="number" min="0" max="500" step="1" value="10" required inputmode="numeric" aria-describedby="contact-generator-error" <?= $cities === [] ? 'disabled' : '' ?>>
+                </div>
+                <div class="form-actions">
+                    <button class="button button-primary" type="submit" data-contact-generator-submit data-pending-label="Generisanje..." <?= $cities === [] ? 'disabled' : '' ?>>Generiši</button>
+                    <button class="button button-secondary" type="button" data-dialog-close>Otkaži</button>
+                </div>
+            </form>
+        </section>
+    </dialog>
     <dialog class="app-dialog" id="contact-delete-dialog" aria-labelledby="contact-delete-title" data-confirm-entity="kontakt">
         <section class="dialog-panel">
             <header class="dialog-header">

@@ -188,7 +188,7 @@ $activeNavigation = 'contacts';
                                     <td data-label="Grad"><?= escapeHtml($contact['city_name']) ?></td>
                                     <td data-label="Akcije"><div class="row-actions">
                                         <a class="button button-small button-secondary" href="/contacts.php?edit_id=<?= (int) $contact['id'] ?>&amp;search=<?= rawurlencode($searchTerm) ?>">Izmeni</a>
-                                        <button class="button button-small button-danger" type="button" data-confirm-open="contact-delete-dialog" data-delete-id="<?= (int) $contact['id'] ?>">Izbriši</button>
+                                        <button class="button button-small button-danger" type="button" data-confirm-open="contact-delete-dialog" data-delete-id="<?= (int) $contact['id'] ?>" data-delete-label="<?= escapeHtml($contact['first_name'] . ' ' . $contact['last_name']) ?>">Izbriši</button>
                                     </div></td>
                                 </tr>
                             <?php endforeach; ?>
@@ -223,13 +223,13 @@ $activeNavigation = 'contacts';
         require dirname(__DIR__) . '/app/views/contact-form.php';
     }
     ?>
-    <dialog class="app-dialog" id="contact-delete-dialog" aria-labelledby="contact-delete-title">
+    <dialog class="app-dialog" id="contact-delete-dialog" aria-labelledby="contact-delete-title" data-confirm-entity="kontakt">
         <section class="dialog-panel">
             <header class="dialog-header">
                 <h2 id="contact-delete-title">Brisanje kontakta</h2>
                 <button class="dialog-close" type="button" data-dialog-close aria-label="Zatvori dijalog">&times;</button>
             </header>
-            <p>Da li ste sigurni da želite da obrišete ovaj kontakt?</p>
+            <p data-confirm-message>Da li ste sigurni da želite da obrišete ovaj kontakt?</p>
             <form method="post" action="/contact-delete.php" class="form-actions">
                 <input type="hidden" name="contact_id" value="" data-confirm-id>
                 <button class="button button-secondary" type="button" data-dialog-close>Otkaži</button>

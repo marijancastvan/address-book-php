@@ -157,9 +157,15 @@ dialog.app-dialog::backdrop {
 }
 
 .city-picker-option:hover,
-.city-picker-option:focus {
+.city-picker-option:focus,
+.city-picker-option.is-active {
     outline: none;
     background: #eff6ff;
+}
+
+.city-picker-option {
+    overflow-wrap: anywhere;
+    white-space: normal;
 }
 
 .city-picker-empty {

@@ -20,6 +20,7 @@
     let searchTimer = null;
     let searchController = null;
     let searchVersion = 0;
+    let activeOptionIndex = -1;
 
     const setCityError = (message) => {
         cityError.textContent = message;
@@ -38,6 +39,22 @@
     const hideCityList = () => {
         cityList.hidden = true;
         cityInput.setAttribute('aria-expanded', 'false');
+        cityInput.removeAttribute('aria-activedescendant');
+        activeOptionIndex = -1;
+    };
+
+    const setActiveOption = (index) => {
+        const options = [...cityList.querySelectorAll('.city-picker-option')];
+        if (options.length === 0) return;
+
+        activeOptionIndex = (index + options.length) % options.length;
+        options.forEach((option, optionIndex) => {
+            const isActive = optionIndex === activeOptionIndex;
+            option.classList.toggle('is-active', isActive);
+            option.setAttribute('aria-selected', String(isActive));
+        });
+        cityInput.setAttribute('aria-activedescendant', options[activeOptionIndex].id);
+        options[activeOptionIndex].scrollIntoView({ block: 'nearest' });
     };
 
     const showCityList = () => {
@@ -62,6 +79,9 @@
             option.className = 'city-picker-option';
             option.type = 'button';
             option.role = 'option';
+            option.id = `contact-create-city-option-${Number(city.id)}`;
+            option.tabIndex = -1;
+            option.setAttribute('aria-selected', 'false');
             option.dataset.cityId = String(city.id);
             option.dataset.cityName = city.name;
             option.textContent = city.name;
@@ -118,11 +138,11 @@
         const version = searchVersion;
         clearTimeout(searchTimer);
         searchController?.abort();
+        cityList.replaceChildren();
+        hideCityList();
 
         const term = cityInput.value.trim();
         if (term === '') {
-            cityList.replaceChildren();
-            hideCityList();
             return;
         }
 
@@ -137,6 +157,7 @@
         setCityError('');
         setCityStatus('');
         addCityButton.disabled = isCreating;
+        cityInput.focus();
     };
 
     cityInput.addEventListener('input', scheduleCitySearch);
@@ -144,26 +165,35 @@
         const option = event.target.closest('[data-city-id][data-city-name]');
         if (option && cityList.contains(option)) selectCity(option);
     });
+    cityList.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape' && cityInput.getAttribute('aria-expanded') === 'true') {
+            event.preventDefault();
+            event.stopPropagation();
+            hideCityList();
+            cityInput.focus();
+        }
+    });
     cityInput.addEventListener('keydown', (event) => {
         if (event.key === 'Escape') {
-            hideCityList();
+            if (cityInput.getAttribute('aria-expanded') === 'true') {
+                event.preventDefault();
+                event.stopPropagation();
+                hideCityList();
+                cityInput.focus();
+            }
             return;
         }
         const options = [...cityList.querySelectorAll('.city-picker-option')];
         if (options.length === 0) return;
-        const activeIndex = options.indexOf(document.activeElement);
         if (event.key === 'ArrowDown') {
             event.preventDefault();
-            options[Math.min(activeIndex + 1, options.length - 1)].focus();
+            setActiveOption(activeOptionIndex + 1);
         } else if (event.key === 'ArrowUp') {
             event.preventDefault();
-            options[Math.max(activeIndex - 1, 0)].focus();
-        }
-    });
-    cityList.addEventListener('keydown', (event) => {
-        if (event.key === 'Escape') {
-            hideCityList();
-            cityInput.focus();
+            setActiveOption(activeOptionIndex < 0 ? options.length - 1 : activeOptionIndex - 1);
+        } else if (event.key === 'Enter' && activeOptionIndex >= 0) {
+            event.preventDefault();
+            selectCity(options[activeOptionIndex]);
         }
     });
     document.addEventListener('click', (event) => {
@@ -199,6 +229,7 @@
         confirmButton.disabled = true;
         addCityButton.disabled = true;
         confirmButton.textContent = 'Dodavanje...';
+        confirmationDialog.setAttribute('aria-busy', 'true');
         setCityStatus('Dodavanje mesta...', 'info');
 
         try {
@@ -231,6 +262,7 @@
             isCreating = false;
             confirmButton.disabled = false;
             confirmButton.textContent = 'Dodaj mesto';
+            confirmationDialog.removeAttribute('aria-busy');
             addCityButton.disabled = cityInput.value.trim() === '';
         }
     });

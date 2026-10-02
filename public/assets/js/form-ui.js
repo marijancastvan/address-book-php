@@ -26,6 +26,14 @@
             const dialog = document.getElementById(confirmTrigger.dataset.confirmOpen);
             const idField = dialog?.querySelector('[data-confirm-id]');
             if (idField) idField.value = confirmTrigger.dataset.deleteId || '';
+            const message = dialog?.querySelector('[data-confirm-message]');
+            if (message) {
+                const entity = dialog.dataset.confirmEntity || 'stavku';
+                const label = confirmTrigger.dataset.deleteLabel || '';
+                message.textContent = label
+                    ? `Da li ste sigurni da želite da obrišete ${entity} „${label}“?`
+                    : `Da li ste sigurni da želite da obrišete ovaj ${entity}?`;
+            }
             openDialog(dialog);
             return;
         }

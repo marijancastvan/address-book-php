@@ -142,7 +142,7 @@ $activeNavigation = 'cities';
                             <td data-label="Naziv grada"><?= escapeHtml($city['name']) ?></td>
                             <td data-label="Akcije"><div class="row-actions">
                                 <a class="button button-small button-secondary" href="/cities.php?edit_id=<?= (int) $city['id'] ?>">Izmeni</a>
-                                <button class="button button-small button-danger" type="button" data-confirm-open="city-delete-dialog" data-delete-id="<?= (int) $city['id'] ?>">Izbriši</button>
+                                <button class="button button-small button-danger" type="button" data-confirm-open="city-delete-dialog" data-delete-id="<?= (int) $city['id'] ?>" data-delete-label="<?= escapeHtml($city['name']) ?>">Izbriši</button>
                             </div></td>
                         </tr>
                     <?php endforeach; ?></tbody>
@@ -165,13 +165,13 @@ $activeNavigation = 'cities';
         require dirname(__DIR__) . '/app/views/city-form.php';
     }
     ?>
-    <dialog class="app-dialog" id="city-delete-dialog" aria-labelledby="city-delete-title">
+    <dialog class="app-dialog" id="city-delete-dialog" aria-labelledby="city-delete-title" data-confirm-entity="grad">
         <section class="dialog-panel">
             <header class="dialog-header">
                 <h2 id="city-delete-title">Brisanje grada</h2>
                 <button class="dialog-close" type="button" data-dialog-close aria-label="Zatvori dijalog">&times;</button>
             </header>
-            <p>Da li ste sigurni da želite da obrišete ovaj grad?</p>
+            <p data-confirm-message>Da li ste sigurni da želite da obrišete ovaj grad?</p>
             <form method="post" action="/city-delete.php" class="form-actions">
                 <input type="hidden" name="city_id" value="" data-confirm-id>
                 <button class="button button-secondary" type="button" data-dialog-close>Otkaži</button>

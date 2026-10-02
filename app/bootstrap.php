@@ -6,9 +6,9 @@ require_once __DIR__ . '/session.php';
 
 $localConfigPath = __DIR__ . '/config/config.local.php';
 $exampleConfigPath = __DIR__ . '/config/config.example.php';
-$configPath = is_file($localConfigPath) ? $localConfigPath : $exampleConfigPath;
-
-$config = require $configPath;
+$exampleConfig = require $exampleConfigPath;
+$localConfig = is_file($localConfigPath) ? require $localConfigPath : [];
+$config = array_replace_recursive($exampleConfig, is_array($localConfig) ? $localConfig : []);
 
 /**
  * Return the shared PDO connection, creating it on first use.

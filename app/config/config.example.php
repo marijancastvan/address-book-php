@@ -14,4 +14,16 @@ return [
         'username' => 'root',
         'password' => '',
     ],
+    'app' => [
+        'base_url' => 'http://localhost:8000',
+    ],
+    'mail' => [
+        'from_address' => 'castvan.marian@gmail.com',
+        'from_name' => 'Address Book',
+        'smtp_host' => 'smtp.gmail.com',
+        'smtp_port' => 587,
+        'smtp_username' => 'castvan.marian@gmail.com',
+        'smtp_password' => '',
+        'smtp_encryption' => 'tls',
+    ],
 ];

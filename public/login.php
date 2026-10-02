@@ -66,7 +66,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             <button class="button button-primary" type="submit" data-pending-label="Prijavljivanje...">Prijavite se</button>
         </form>
-        <p>Nemate nalog? <a href="/register.php">Registrujte se</a>.</p>
+        <div class="auth-links">
+            <p class="auth-register-link">Nemate nalog? <a href="/register.php">Registrujte se</a>.</p>
+            <p class="auth-reset-link"><a href="/forgot-password.php">Zaboravili ste lozinku?</a></p>
+        </div>
     </main>
 </body>
 </html>

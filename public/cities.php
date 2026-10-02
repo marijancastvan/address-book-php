@@ -100,6 +100,7 @@ $activeNavigation = 'cities';
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Gradovi | Address Book</title>
+    <link rel="stylesheet" href="/assets/css/app.css">
     <link rel="stylesheet" href="/assets/css/cities.css">
     <link rel="stylesheet" href="/assets/css/dialogs.css">
     <script src="/assets/js/form-ui.js" defer></script>

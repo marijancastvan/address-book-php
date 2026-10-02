@@ -43,10 +43,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Prijava | Address Book</title>
+    <link rel="stylesheet" href="/assets/css/app.css">
     <link rel="stylesheet" href="/assets/css/auth.css">
 </head>
-<body>
+<body class="auth-page">
     <main class="auth-card">
+        <a class="auth-brand" href="/">ADDRESS BOOK</a>
         <h1>Prijava</h1>
         <?php if ($successMessage !== null): ?>
             <p class="message message-success"><?= escapeHtml((string) $successMessage) ?></p>
@@ -61,7 +63,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <label for="password">Lozinka</label>
             <input id="password" name="password" type="password" autocomplete="current-password" required>
 
-            <button type="submit">Prijavite se</button>
+            <button class="button button-primary" type="submit">Prijavite se</button>
         </form>
         <p>Nemate nalog? <a href="/register.php">Registrujte se</a>.</p>
     </main>

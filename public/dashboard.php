@@ -33,6 +33,7 @@ $activeNavigation = 'dashboard';
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Dashboard | Address Book</title>
+    <link rel="stylesheet" href="/assets/css/app.css">
     <link rel="stylesheet" href="/assets/css/dashboard.css">
 </head>
 <body>
@@ -46,31 +47,33 @@ $activeNavigation = 'dashboard';
         </aside>
 
         <main class="main-content">
-            <header class="page-header">
+            <header class="page-header dashboard-page-header">
                 <p class="eyebrow">ADDRESS BOOK</p>
                 <h1>Dashboard</h1>
                 <p class="welcome">Dobrodošli!</p>
             </header>
 
-            <section class="account-card" aria-labelledby="account-heading">
-                <div>
-                    <p class="eyebrow">TRENUTNO PRIJAVLJENI KORISNIK</p>
-                    <h2 id="account-heading"><?= escapeHtml($email) ?></h2>
-                </div>
-            </section>
+            <div class="dashboard-overview">
+                <section class="account-card" aria-labelledby="account-heading">
+                    <div>
+                        <p class="eyebrow">TRENUTNO PRIJAVLJENI KORISNIK</p>
+                        <h2 id="account-heading"><?= escapeHtml($email) ?></h2>
+                    </div>
+                </section>
 
-            <section class="feature-grid" aria-label="Delovi aplikacije">
-                <a class="feature-card feature-card-link" href="/contacts.php">
-                    <p class="eyebrow">ADRESAR</p>
-                    <h2>Kontakti</h2>
-                    <p>Pregledajte i uredite svoje kontakte.</p>
-                </a>
-                <a class="feature-card feature-card-link" href="/cities.php">
-                    <p class="eyebrow">LOKACIJE</p>
-                    <h2>Gradovi</h2>
-                    <p>Upravljajte svojim gradovima.</p>
-                </a>
-            </section>
+                <section class="feature-grid" aria-label="Delovi aplikacije">
+                    <a class="feature-card feature-card-link" href="/contacts.php">
+                        <p class="eyebrow">ADRESAR</p>
+                        <h2>Kontakti</h2>
+                        <p>Pregledajte i uredite svoje kontakte.</p>
+                    </a>
+                    <a class="feature-card feature-card-link" href="/cities.php">
+                        <p class="eyebrow">LOKACIJE</p>
+                        <h2>Gradovi</h2>
+                        <p>Upravljajte svojim gradovima.</p>
+                    </a>
+                </section>
+            </div>
         </main>
     </div>
 </body>

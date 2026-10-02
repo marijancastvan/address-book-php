@@ -53,10 +53,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Registracija | Address Book</title>
+    <link rel="stylesheet" href="/assets/css/app.css">
     <link rel="stylesheet" href="/assets/css/auth.css">
 </head>
-<body>
+<body class="auth-page">
     <main class="auth-card">
+        <a class="auth-brand" href="/">ADDRESS BOOK</a>
         <h1>Kreirajte nalog</h1>
         <?php if ($successMessage !== null): ?>
             <p class="message message-success"><?= escapeHtml((string) $successMessage) ?></p>
@@ -74,7 +76,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <label for="password_confirmation">Potvrdite lozinku</label>
             <input id="password_confirmation" name="password_confirmation" type="password" autocomplete="new-password" required>
 
-            <button type="submit">Registrujte se</button>
+            <button class="button button-primary" type="submit">Registrujte se</button>
         </form>
         <p>Već imate nalog? <a href="/login.php">Prijavite se</a>.</p>
     </main>

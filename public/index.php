@@ -10,20 +10,25 @@ require_once dirname(__DIR__) . '/app/auth.php';
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Address Book – PHP Clone</title>
+    <meta name="theme-color" content="#f4f7fc">
+    <title>Address Book | Vaš lični adresar</title>
+    <link rel="stylesheet" href="/assets/css/app.css">
 </head>
-<body>
-    <main>
-        <h1>Address Book – PHP Clone</h1>
-        <p>PHP aplikacija je pokrenuta.</p>
-        <?php if (isAuthenticated()): ?>
-            <p><a href="/dashboard.php">Dashboard</a></p>
-            <form action="/logout.php" method="post">
-                <button type="submit">Odjavi se</button>
-            </form>
-        <?php else: ?>
-            <p><a href="/login.php">Prijava</a> | <a href="/register.php">Registracija</a></p>
-        <?php endif; ?>
+<body class="home-page">
+    <main class="home-card">
+        <h1 class="home-title">ADDRESS BOOK</h1>
+        <p class="home-tagline">VAŠ LIČNI ADRESAR</p>
+        <div class="home-actions">
+            <?php if (isAuthenticated()): ?>
+                <a class="button button-primary" href="/dashboard.php">Otvori Dashboard</a>
+                <form action="/logout.php" method="post" class="home-logout-form">
+                    <button class="button button-secondary" type="submit">Odjavi se</button>
+                </form>
+            <?php else: ?>
+                <a class="button button-primary" href="/login.php">Prijavite se</a>
+                <a class="button button-secondary" href="/register.php">Kreirajte nalog</a>
+            <?php endif; ?>
+        </div>
     </main>
 </body>
 </html>

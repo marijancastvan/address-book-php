@@ -15,7 +15,7 @@
             <p class="message message-info">Nemate nijedan grad. Kontakt možete dodati kada kreirate svoj grad.</p>
         <?php endif; ?>
 
-        <form class="contact-form" method="post" action="<?= escapeHtml($formAction) ?>" novalidate data-validate-form>
+        <form class="contact-form" method="post" action="<?= escapeHtml($formAction) ?>" novalidate data-validate-form data-pending-submit>
             <?php if (isset($contactId)): ?>
                 <input type="hidden" name="contact_id" value="<?= (int) $contactId ?>">
             <?php endif; ?>
@@ -72,7 +72,7 @@
             <?php endif; ?>
 
             <div class="form-actions">
-                <button class="button button-primary" type="submit">Sačuvaj</button>
+                <button class="button button-primary" type="submit" data-pending-label="Čuvanje...">Sačuvaj</button>
                 <button class="button button-secondary" type="button" data-dialog-close>Otkaži</button>
             </div>
         </form>

@@ -105,6 +105,7 @@ $activeNavigation = 'cities';
     <link rel="stylesheet" href="/assets/css/dialogs.css">
     <script src="/assets/js/form-ui.js" defer></script>
     <script src="/assets/js/cities.js" defer></script>
+    <script src="/assets/js/form-submit-state.js" defer></script>
 </head>
 <body>
     <div class="app-shell">
@@ -172,10 +173,10 @@ $activeNavigation = 'cities';
                 <button class="dialog-close" type="button" data-dialog-close aria-label="Zatvori dijalog">&times;</button>
             </header>
             <p data-confirm-message>Da li ste sigurni da želite da obrišete ovaj grad?</p>
-            <form method="post" action="/city-delete.php" class="form-actions">
+            <form method="post" action="/city-delete.php" class="form-actions" data-pending-submit>
                 <input type="hidden" name="city_id" value="" data-confirm-id>
                 <button class="button button-secondary" type="button" data-dialog-close>Otkaži</button>
-                <button class="button button-danger" type="submit">Izbriši</button>
+                <button class="button button-danger" type="submit" data-pending-label="Brisanje...">Izbriši</button>
             </form>
         </section>
     </dialog>

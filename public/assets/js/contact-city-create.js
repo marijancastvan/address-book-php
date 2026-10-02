@@ -106,7 +106,9 @@
         loadingMessage.className = 'city-picker-empty';
         loadingMessage.textContent = 'Pretraga...';
         cityList.append(loadingMessage);
+        cityList.setAttribute('aria-busy', 'true');
         showCityList();
+        setCityStatus('Pretraga...', 'loading');
 
         try {
             const query = new URLSearchParams({ format: 'json', search: term });
@@ -115,17 +117,33 @@
                 credentials: 'same-origin',
                 signal: controller.signal,
             });
-            const payload = await response.json();
+            let payload;
+            try {
+                payload = await response.json();
+            } catch (error) {
+                if (error.name === 'AbortError') throw error;
+                throw new Error('invalid-response');
+            }
             if (version !== searchVersion || controller.signal.aborted) return;
             if (!response.ok || !Array.isArray(payload.cities)) {
-                throw new Error(payload.error || 'Gradovi trenutno nisu dostupni. Pokušajte ponovo.');
+                if (typeof payload.error === 'string' && payload.error !== '') {
+                    setCityStatus(payload.error, 'error');
+                    cityList.replaceChildren();
+                    hideCityList();
+                    cityList.setAttribute('aria-busy', 'false');
+                    return;
+                }
+                throw new Error('invalid-response');
             }
             renderCityResults(payload.cities);
+            cityList.setAttribute('aria-busy', 'false');
+            setCityStatus('');
         } catch (error) {
             if (error.name === 'AbortError' || version !== searchVersion) return;
             cityList.replaceChildren();
             hideCityList();
-            setCityStatus(error.message || 'Gradovi trenutno nisu dostupni. Pokušajte ponovo.', 'error');
+            cityList.setAttribute('aria-busy', 'false');
+            setCityStatus('Pretraga trenutno nije dostupna. Pokušajte ponovo.', 'error');
         }
     };
 
@@ -139,6 +157,7 @@
         clearTimeout(searchTimer);
         searchController?.abort();
         cityList.replaceChildren();
+        cityList.setAttribute('aria-busy', 'false');
         hideCityList();
 
         const term = cityInput.value.trim();
@@ -232,6 +251,7 @@
         confirmationDialog.setAttribute('aria-busy', 'true');
         setCityStatus('Dodavanje mesta...', 'info');
 
+        let failureMessage = 'Mesto trenutno nije moguće dodati. Pokušajte ponovo.';
         try {
             const response = await fetch('/city-create.php?format=json', {
                 method: 'POST',
@@ -242,10 +262,20 @@
                 credentials: 'same-origin',
                 body: new URLSearchParams({ name: cityName }).toString(),
             });
-            const payload = await response.json();
+            let payload;
+            try {
+                payload = await response.json();
+            } catch {
+                throw new Error('invalid-response');
+            }
 
             if (!response.ok || !payload.city || !['created', 'exists'].includes(payload.status)) {
-                throw new Error(payload.errors?.name || payload.error || 'Mesto trenutno nije moguće dodati. Pokušajte ponovo.');
+                if (typeof payload.errors?.name === 'string' && payload.errors.name !== '') {
+                    failureMessage = payload.errors.name;
+                } else if (typeof payload.error === 'string' && payload.error !== '') {
+                    failureMessage = payload.error;
+                }
+                throw new Error('city-create-failed');
             }
 
             cityInput.value = payload.city.name;
@@ -256,7 +286,7 @@
             setCityStatus(payload.message, payload.status === 'created' ? 'success' : 'info');
             confirmationDialog.close();
         } catch (error) {
-            setCityStatus(error.message || 'Mesto trenutno nije moguće dodati. Pokušajte ponovo.', 'error');
+            setCityStatus(failureMessage, 'error');
             confirmationDialog.close();
         } finally {
             isCreating = false;

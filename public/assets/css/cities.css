@@ -56,6 +56,18 @@
     background: #f8faef;
 }
 
+.city-search-status[data-state="loading"] {
+    border-color: #c8dafb;
+    color: #1e3a8a;
+    background: #eff5ff;
+}
+
+.city-search-status[data-state="error"] {
+    border-color: #f3c4c8;
+    color: #991b1b;
+    background: #fff0f1;
+}
+
 .city-results[aria-busy="true"] {
     opacity: .76;
     transition: opacity 160ms ease;

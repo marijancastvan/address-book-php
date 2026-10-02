@@ -134,6 +134,7 @@ $activeNavigation = 'contacts';
     <script src="/assets/js/form-ui.js" defer></script>
     <script src="/assets/js/contacts.js" defer></script>
     <script src="/assets/js/contact-city-create.js" defer></script>
+    <script src="/assets/js/form-submit-state.js" defer></script>
 </head>
 <body>
     <div class="app-shell">
@@ -230,10 +231,10 @@ $activeNavigation = 'contacts';
                 <button class="dialog-close" type="button" data-dialog-close aria-label="Zatvori dijalog">&times;</button>
             </header>
             <p data-confirm-message>Da li ste sigurni da želite da obrišete ovaj kontakt?</p>
-            <form method="post" action="/contact-delete.php" class="form-actions">
+            <form method="post" action="/contact-delete.php" class="form-actions" data-pending-submit>
                 <input type="hidden" name="contact_id" value="" data-confirm-id>
                 <button class="button button-secondary" type="button" data-dialog-close>Otkaži</button>
-                <button class="button button-danger" type="submit">Izbriši</button>
+                <button class="button button-danger" type="submit" data-pending-label="Brisanje...">Izbriši</button>
             </form>
         </section>
     </dialog>

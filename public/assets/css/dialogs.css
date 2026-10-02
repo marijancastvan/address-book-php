@@ -197,6 +197,10 @@ dialog.app-dialog::backdrop {
     color: #1e3a8a;
 }
 
+.city-create-status[data-state="loading"] {
+    color: #1e3a8a;
+}
+
 .city-create-status[data-state="error"] {
     color: #b42318;
 }

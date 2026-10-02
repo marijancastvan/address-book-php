@@ -45,25 +45,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <title>Prijava | Address Book</title>
     <link rel="stylesheet" href="/assets/css/app.css">
     <link rel="stylesheet" href="/assets/css/auth.css">
+    <script src="/assets/js/form-submit-state.js" defer></script>
 </head>
 <body class="auth-page">
     <main class="auth-card">
         <a class="auth-brand" href="/">ADDRESS BOOK</a>
         <h1>Prijava</h1>
         <?php if ($successMessage !== null): ?>
-            <p class="message message-success"><?= escapeHtml((string) $successMessage) ?></p>
+            <p class="message message-success" role="status"><?= escapeHtml((string) $successMessage) ?></p>
         <?php endif; ?>
         <?php foreach ($errors as $error): ?>
-            <p class="message message-error"><?= escapeHtml($error) ?></p>
+            <p class="message message-error" role="alert"><?= escapeHtml($error) ?></p>
         <?php endforeach; ?>
-        <form method="post" action="/login.php">
+        <form method="post" action="/login.php" data-pending-submit>
             <label for="email">Email</label>
             <input id="email" name="email" type="email" maxlength="255" autocomplete="email" required value="<?= escapeHtml($email) ?>">
 
             <label for="password">Lozinka</label>
             <input id="password" name="password" type="password" autocomplete="current-password" required>
 
-            <button class="button button-primary" type="submit">Prijavite se</button>
+            <button class="button button-primary" type="submit" data-pending-label="Prijavljivanje...">Prijavite se</button>
         </form>
         <p>Nemate nalog? <a href="/register.php">Registrujte se</a>.</p>
     </main>

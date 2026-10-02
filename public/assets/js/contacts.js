@@ -85,6 +85,7 @@
             remove.textContent = 'Izbriši';
             remove.dataset.confirmOpen = 'contact-delete-dialog';
             remove.dataset.deleteId = String(contact.id);
+            remove.dataset.deleteLabel = `${contact.first_name ?? ''} ${contact.last_name ?? ''}`.trim();
 
             actions.append(edit, remove);
             actionsCell.append(actions);
@@ -101,7 +102,8 @@
         const controller = new AbortController();
         activeController = controller;
         results.setAttribute('aria-busy', 'true');
-        status.textContent = '';
+        status.textContent = 'Pretraga...';
+        status.dataset.state = 'loading';
 
         const query = new URLSearchParams({ search: term, format: 'json' });
 
@@ -120,10 +122,13 @@
             }
 
             renderContacts(payload.contacts);
+            status.textContent = '';
+            status.removeAttribute('data-state');
         } catch (error) {
             if (error.name === 'AbortError' || version !== requestVersion) return;
             results.replaceChildren();
             status.textContent = 'Pretraga trenutno nije dostupna. Pokušajte ponovo.';
+            status.dataset.state = 'error';
         } finally {
             if (version === requestVersion) {
                 results.setAttribute('aria-busy', 'false');

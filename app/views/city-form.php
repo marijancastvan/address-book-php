@@ -5,7 +5,7 @@
             <button class="dialog-close" type="button" data-dialog-close aria-label="Zatvori dijalog">&times;</button>
         </header>
         <?php if (($errors['_form'] ?? '') !== ''): ?><p class="message message-error" role="alert"><?= escapeHtml($errors['_form']) ?></p><?php endif; ?>
-        <form class="city-form" method="post" action="<?= escapeHtml($formAction) ?>" novalidate data-validate-form>
+        <form class="city-form" method="post" action="<?= escapeHtml($formAction) ?>" novalidate data-validate-form data-pending-submit>
             <?php if (isset($cityId)): ?><input type="hidden" name="city_id" value="<?= (int) $cityId ?>"><?php endif; ?>
             <?php $nameError = $errors['name'] ?? ''; ?>
             <div class="field-group">
@@ -14,7 +14,7 @@
                 <p class="field-error" id="<?= escapeHtml($formIdPrefix) ?>-name-error" <?= $nameError === '' ? 'hidden' : '' ?>><?= escapeHtml($nameError) ?></p>
             </div>
             <div class="form-actions">
-                <button class="button button-primary" type="submit">Sačuvaj</button>
+                <button class="button button-primary" type="submit" data-pending-label="Čuvanje...">Sačuvaj</button>
                 <button class="button button-secondary" type="button" data-dialog-close>Otkaži</button>
             </div>
         </form>

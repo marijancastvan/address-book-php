@@ -46,6 +46,18 @@
     background: #fff9ed;
 }
 
+.search-status[data-state="loading"] {
+    border-color: #c8dafb;
+    color: #1e3a8a;
+    background: #eff5ff;
+}
+
+.search-status[data-state="error"] {
+    border-color: #f3c4c8;
+    color: #991b1b;
+    background: #fff0f1;
+}
+
 .contact-results[aria-busy="true"] {
     opacity: .76;
     transition: opacity 160ms ease;

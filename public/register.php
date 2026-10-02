@@ -55,18 +55,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <title>Registracija | Address Book</title>
     <link rel="stylesheet" href="/assets/css/app.css">
     <link rel="stylesheet" href="/assets/css/auth.css">
+    <script src="/assets/js/form-submit-state.js" defer></script>
 </head>
 <body class="auth-page">
     <main class="auth-card">
         <a class="auth-brand" href="/">ADDRESS BOOK</a>
         <h1>Kreirajte nalog</h1>
         <?php if ($successMessage !== null): ?>
-            <p class="message message-success"><?= escapeHtml((string) $successMessage) ?></p>
+            <p class="message message-success" role="status"><?= escapeHtml((string) $successMessage) ?></p>
         <?php endif; ?>
         <?php foreach ($errors as $error): ?>
-            <p class="message message-error"><?= escapeHtml($error) ?></p>
+            <p class="message message-error" role="alert"><?= escapeHtml($error) ?></p>
         <?php endforeach; ?>
-        <form method="post" action="/register.php">
+        <form method="post" action="/register.php" data-pending-submit>
             <label for="email">Email</label>
             <input id="email" name="email" type="email" maxlength="255" autocomplete="email" required value="<?= escapeHtml($email) ?>">
 
@@ -76,7 +77,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <label for="password_confirmation">Potvrdite lozinku</label>
             <input id="password_confirmation" name="password_confirmation" type="password" autocomplete="new-password" required>
 
-            <button class="button button-primary" type="submit">Registrujte se</button>
+            <button class="button button-primary" type="submit" data-pending-label="Registracija...">Registrujte se</button>
         </form>
         <p>Već imate nalog? <a href="/login.php">Prijavite se</a>.</p>
     </main>

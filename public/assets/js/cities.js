@@ -74,6 +74,7 @@
             remove.textContent = 'Izbriši';
             remove.dataset.confirmOpen = 'city-delete-dialog';
             remove.dataset.deleteId = String(city.id);
+            remove.dataset.deleteLabel = city.name ?? '';
 
             actions.append(edit, remove);
             actionsCell.append(actions);
@@ -90,7 +91,10 @@
         const controller = new AbortController();
         activeController = controller;
         results.setAttribute('aria-busy', 'true');
-        if (status) status.textContent = '';
+        if (status) {
+            status.textContent = 'Pretraga...';
+            status.dataset.state = 'loading';
+        }
 
         const query = new URLSearchParams({ search: term, format: 'json' });
 
@@ -109,10 +113,17 @@
             }
 
             renderCities(payload.cities);
+            if (status) {
+                status.textContent = '';
+                status.removeAttribute('data-state');
+            }
         } catch (error) {
             if (error.name === 'AbortError' || version !== requestVersion) return;
             results.replaceChildren();
-            if (status) status.textContent = 'Pretraga trenutno nije dostupna. Pokušajte ponovo.';
+            if (status) {
+                status.textContent = 'Pretraga trenutno nije dostupna. Pokušajte ponovo.';
+                status.dataset.state = 'error';
+            }
         } finally {
             if (version === requestVersion) {
                 results.setAttribute('aria-busy', 'false');

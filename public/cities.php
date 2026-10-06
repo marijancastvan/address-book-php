@@ -93,6 +93,7 @@ $errorMessage = match ($_GET['error'] ?? '') {
     default => ($openEditId && $editCity === null) ? 'Grad nije pronađen ili nemate dozvolu za pristup.' : null,
 };
 $activeNavigation = 'cities';
+$baseUrl = rtrim($config['app']['base_url'], '/');
 ?>
 <!doctype html>
 <html lang="sr">
@@ -100,19 +101,19 @@ $activeNavigation = 'cities';
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Gradovi | Address Book</title>
-    <link rel="stylesheet" href="/assets/css/app.css">
-    <link rel="stylesheet" href="/assets/css/cities.css">
-    <link rel="stylesheet" href="/assets/css/dialogs.css">
-    <script src="/assets/js/form-ui.js" defer></script>
-    <script src="/assets/js/cities.js" defer></script>
-    <script src="/assets/js/form-submit-state.js" defer></script>
+    <link rel="stylesheet" href="<?= escapeHtml($baseUrl) ?>/assets/css/app.css">
+    <link rel="stylesheet" href="<?= escapeHtml($baseUrl) ?>/assets/css/cities.css">
+    <link rel="stylesheet" href="<?= escapeHtml($baseUrl) ?>/assets/css/dialogs.css">
+    <script src="<?= escapeHtml($baseUrl) ?>/assets/js/form-ui.js" defer></script>
+    <script src="<?= escapeHtml($baseUrl) ?>/assets/js/cities.js" defer></script>
+    <script src="<?= escapeHtml($baseUrl) ?>/assets/js/form-submit-state.js" defer></script>
 </head>
-<body>
+<body data-app-base="<?= escapeHtml($baseUrl) ?>">
     <div class="app-shell">
         <aside class="sidebar">
-            <a class="brand" href="/dashboard.php">Address Book</a>
+            <a class="brand" href="<?= escapeHtml($baseUrl) ?>/dashboard.php">Address Book</a>
             <?php require dirname(__DIR__) . '/app/views/main-navigation.php'; ?>
-            <form action="/logout.php" method="post" class="logout-form"><button class="logout-button" type="submit">Odjava</button></form>
+            <form action="<?= escapeHtml($baseUrl) ?>/logout.php" method="post" class="logout-form"><button class="logout-button" type="submit">Odjava</button></form>
         </aside>
         <main class="main-content">
             <header class="page-header">
@@ -142,7 +143,7 @@ $activeNavigation = 'cities';
                         <tr>
                             <td data-label="Naziv grada"><?= escapeHtml($city['name']) ?></td>
                             <td data-label="Akcije"><div class="row-actions">
-                                <a class="button button-small button-secondary" href="/cities.php?edit_id=<?= (int) $city['id'] ?>">Izmeni</a>
+                                <a class="button button-small button-secondary" href="<?= escapeHtml($baseUrl) ?>/cities.php?edit_id=<?= (int) $city['id'] ?>">Izmeni</a>
                                 <button class="button button-small button-danger" type="button" data-confirm-open="city-delete-dialog" data-delete-id="<?= (int) $city['id'] ?>" data-delete-label="<?= escapeHtml($city['name']) ?>">Izbriši</button>
                             </div></td>
                         </tr>
@@ -155,12 +156,12 @@ $activeNavigation = 'cities';
 
     <?php
     $dialogId = 'city-create-dialog'; $formIdPrefix = 'city-create'; $dialogTitle = 'Dodaj novi grad';
-    $formAction = '/city-create.php'; $cityName = $createName; $errors = $createErrors; $openDialog = $openCreate;
+    $formAction = $baseUrl . '/city-create.php'; $cityName = $createName; $errors = $createErrors; $openDialog = $openCreate;
     unset($cityId);
     require dirname(__DIR__) . '/app/views/city-form.php';
     if ($editCity !== null) {
         $dialogId = 'city-edit-dialog'; $formIdPrefix = 'city-edit'; $dialogTitle = 'Izmeni grad';
-        $formAction = '/city-edit.php?id=' . (int) $editCity['id']; $cityName = $editName;
+        $formAction = $baseUrl . '/city-edit.php?id=' . (int) $editCity['id']; $cityName = $editName;
         $errors = $editErrors; $cityId = (int) $editCity['id'];
         $openDialog = (($formState['mode'] ?? '') === 'edit') || (($_GET['edit_id'] ?? '') !== '');
         require dirname(__DIR__) . '/app/views/city-form.php';
@@ -173,7 +174,7 @@ $activeNavigation = 'cities';
                 <button class="dialog-close" type="button" data-dialog-close aria-label="Zatvori dijalog">&times;</button>
             </header>
             <p data-confirm-message>Da li ste sigurni da želite da obrišete ovaj grad?</p>
-            <form method="post" action="/city-delete.php" class="form-actions" data-pending-submit>
+            <form method="post" action="<?= escapeHtml($baseUrl) ?>/city-delete.php" class="form-actions" data-pending-submit>
                 <input type="hidden" name="city_id" value="" data-confirm-id>
                 <button class="button button-secondary" type="button" data-dialog-close>Otkaži</button>
                 <button class="button button-danger" type="submit" data-pending-label="Brisanje...">Izbriši</button>

@@ -1,4 +1,5 @@
 (() => {
+    const appBase = document.body?.dataset.appBase ?? '';
     const dialog = document.getElementById('contact-generator-dialog');
     const form = dialog?.querySelector('[data-contact-generator]');
     const countInput = form?.querySelector('[name="count"]');
@@ -51,7 +52,7 @@
         submitButton.textContent = submitButton.dataset.pendingLabel || 'Generisanje...';
 
         try {
-            const response = await fetch('/contact-generate.php', {
+            const response = await fetch(`${appBase}/contact-generate.php`, {
                 method: 'POST',
                 headers: {
                     Accept: 'application/json',

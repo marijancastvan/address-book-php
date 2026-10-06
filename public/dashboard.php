@@ -26,6 +26,7 @@ if ($user === false) {
 
 $email = (string) $user['email'];
 $activeNavigation = 'dashboard';
+$baseUrl = rtrim($config['app']['base_url'], '/');
 ?>
 <!doctype html>
 <html lang="sr">
@@ -33,15 +34,15 @@ $activeNavigation = 'dashboard';
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Dashboard | Address Book</title>
-    <link rel="stylesheet" href="/assets/css/app.css">
-    <link rel="stylesheet" href="/assets/css/dashboard.css">
+    <link rel="stylesheet" href="<?= escapeHtml($baseUrl) ?>/assets/css/app.css">
+    <link rel="stylesheet" href="<?= escapeHtml($baseUrl) ?>/assets/css/dashboard.css">
 </head>
 <body>
     <div class="app-shell">
         <aside class="sidebar">
-            <a class="brand" href="/dashboard.php">Address Book</a>
+            <a class="brand" href="<?= escapeHtml($baseUrl) ?>/dashboard.php">Address Book</a>
             <?php require dirname(__DIR__) . '/app/views/main-navigation.php'; ?>
-            <form action="/logout.php" method="post" class="logout-form">
+            <form action="<?= escapeHtml($baseUrl) ?>/logout.php" method="post" class="logout-form">
                 <button class="logout-button" type="submit">Odjava</button>
             </form>
         </aside>
@@ -62,12 +63,12 @@ $activeNavigation = 'dashboard';
                 </section>
 
                 <section class="feature-grid" aria-label="Delovi aplikacije">
-                    <a class="feature-card feature-card-link" href="/contacts.php">
+                    <a class="feature-card feature-card-link" href="<?= escapeHtml($baseUrl) ?>/contacts.php">
                         <p class="eyebrow">ADRESAR</p>
                         <h2>Kontakti</h2>
                         <p>Pregledajte i uredite svoje kontakte.</p>
                     </a>
-                    <a class="feature-card feature-card-link" href="/cities.php">
+                    <a class="feature-card feature-card-link" href="<?= escapeHtml($baseUrl) ?>/cities.php">
                         <p class="eyebrow">LOKACIJE</p>
                         <h2>Gradovi</h2>
                         <p>Upravljajte svojim gradovima.</p>

@@ -1,4 +1,5 @@
 (() => {
+    const appBase = document.body?.dataset.appBase ?? '';
     const input = document.getElementById('city-search');
     const results = document.getElementById('city-results');
     const status = document.getElementById('city-search-status');
@@ -66,7 +67,7 @@
             const edit = document.createElement('a');
             edit.className = 'button button-small button-secondary';
             edit.textContent = 'Izmeni';
-            edit.href = `/cities.php?edit_id=${encodeURIComponent(city.id)}&search=${encodeURIComponent(input.value.trim())}`;
+            edit.href = `${appBase}/cities.php?edit_id=${encodeURIComponent(city.id)}&search=${encodeURIComponent(input.value.trim())}`;
 
             const remove = document.createElement('button');
             remove.className = 'button button-small button-danger';
@@ -99,7 +100,7 @@
         const query = new URLSearchParams({ search: term, format: 'json' });
 
         try {
-            const response = await fetch(`/cities.php?${query.toString()}`, {
+            const response = await fetch(`${appBase}/cities.php?${query.toString()}`, {
                 method: 'GET',
                 headers: { Accept: 'application/json' },
                 credentials: 'same-origin',

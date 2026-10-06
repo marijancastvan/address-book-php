@@ -121,6 +121,7 @@ $errorMessage = ($_GET['error'] ?? '') === 'not_found' || ($openEditId && $editC
     ? 'Kontakt nije pronađen ili nemate dozvolu za pristup.'
     : null;
 $activeNavigation = 'contacts';
+$baseUrl = rtrim($config['app']['base_url'], '/');
 ?>
 <!doctype html>
 <html lang="sr">
@@ -128,21 +129,21 @@ $activeNavigation = 'contacts';
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Kontakti | Address Book</title>
-    <link rel="stylesheet" href="/assets/css/app.css">
-    <link rel="stylesheet" href="/assets/css/contacts.css">
-    <link rel="stylesheet" href="/assets/css/dialogs.css">
-    <script src="/assets/js/form-ui.js" defer></script>
-    <script src="/assets/js/contacts.js" defer></script>
-    <script src="/assets/js/contact-city-create.js" defer></script>
-    <script src="/assets/js/form-submit-state.js" defer></script>
-    <script src="/assets/js/contact-generator.js" defer></script>
+    <link rel="stylesheet" href="<?= escapeHtml($baseUrl) ?>/assets/css/app.css">
+    <link rel="stylesheet" href="<?= escapeHtml($baseUrl) ?>/assets/css/contacts.css">
+    <link rel="stylesheet" href="<?= escapeHtml($baseUrl) ?>/assets/css/dialogs.css">
+    <script src="<?= escapeHtml($baseUrl) ?>/assets/js/form-ui.js" defer></script>
+    <script src="<?= escapeHtml($baseUrl) ?>/assets/js/contacts.js" defer></script>
+    <script src="<?= escapeHtml($baseUrl) ?>/assets/js/contact-city-create.js" defer></script>
+    <script src="<?= escapeHtml($baseUrl) ?>/assets/js/form-submit-state.js" defer></script>
+    <script src="<?= escapeHtml($baseUrl) ?>/assets/js/contact-generator.js" defer></script>
 </head>
-<body>
+<body data-app-base="<?= escapeHtml($baseUrl) ?>">
     <div class="app-shell">
         <aside class="sidebar">
-            <a class="brand" href="/dashboard.php">Address Book</a>
+            <a class="brand" href="<?= escapeHtml($baseUrl) ?>/dashboard.php">Address Book</a>
             <?php require dirname(__DIR__) . '/app/views/main-navigation.php'; ?>
-            <form action="/logout.php" method="post" class="logout-form">
+            <form action="<?= escapeHtml($baseUrl) ?>/logout.php" method="post" class="logout-form">
                 <button class="logout-button" type="submit">Odjava</button>
             </form>
         </aside>
@@ -160,7 +161,7 @@ $activeNavigation = 'contacts';
             <?php if ($errorMessage !== null): ?><p class="message message-error" role="alert"><?= escapeHtml($errorMessage) ?></p><?php endif; ?>
             <p class="message message-success" id="contact-generator-success" role="status" aria-live="polite" hidden></p>
 
-            <form class="contact-search" method="get" action="/contacts.php" role="search">
+            <form class="contact-search" method="get" action="<?= escapeHtml($baseUrl) ?>/contacts.php" role="search">
                 <div class="search-field">
                     <label for="contact-search">Pretraži kontakte</label>
                     <input id="contact-search" name="search" type="search" value="<?= escapeHtml($searchTerm) ?>" placeholder="Ime, prezime, telefon ili email..." autocomplete="off" aria-controls="contact-results">
@@ -193,7 +194,7 @@ $activeNavigation = 'contacts';
                                     <td data-label="Email"><?= escapeHtml($contact['email']) ?></td>
                                     <td data-label="Grad"><?= escapeHtml($contact['city_name']) ?></td>
                                     <td data-label="Akcije"><div class="row-actions">
-                                        <a class="button button-small button-secondary" href="/contacts.php?edit_id=<?= (int) $contact['id'] ?>&amp;search=<?= rawurlencode($searchTerm) ?>">Izmeni</a>
+                                        <a class="button button-small button-secondary" href="<?= escapeHtml($baseUrl) ?>/contacts.php?edit_id=<?= (int) $contact['id'] ?>&amp;search=<?= rawurlencode($searchTerm) ?>">Izmeni</a>
                                         <button class="button button-small button-danger" type="button" data-confirm-open="contact-delete-dialog" data-delete-id="<?= (int) $contact['id'] ?>" data-delete-label="<?= escapeHtml($contact['first_name'] . ' ' . $contact['last_name']) ?>">Izbriši</button>
                                     </div></td>
                                 </tr>
@@ -210,7 +211,7 @@ $activeNavigation = 'contacts';
     $dialogId = 'contact-create-dialog';
     $formIdPrefix = 'contact-create';
     $dialogTitle = 'Dodaj kontakt';
-    $formAction = '/contact-create.php';
+    $formAction = $baseUrl . '/contact-create.php';
     $formValues = $createValues;
     $errors = $createErrors;
     $openDialog = $openCreate;
@@ -221,7 +222,7 @@ $activeNavigation = 'contacts';
         $dialogId = 'contact-edit-dialog';
         $formIdPrefix = 'contact-edit';
         $dialogTitle = 'Izmeni kontakt';
-        $formAction = '/contact-edit.php?id=' . (int) $editContact['id'];
+        $formAction = $baseUrl . '/contact-edit.php?id=' . (int) $editContact['id'];
         $formValues = $editValues;
         $errors = $editErrors;
         $contactId = (int) $editContact['id'];
@@ -240,7 +241,7 @@ $activeNavigation = 'contacts';
                 <p class="message message-info" role="status">Pre generisanja kontakata morate imati najmanje jedan grad.</p>
             <?php endif; ?>
             <p class="message message-error" id="contact-generator-error" data-contact-generator-error role="alert" hidden></p>
-            <form class="contact-form" method="post" action="/contact-generate.php" data-contact-generator novalidate>
+            <form class="contact-form" method="post" action="<?= escapeHtml($baseUrl) ?>/contact-generate.php" data-contact-generator novalidate>
                 <div class="field-group">
                     <label for="contact-generator-count">Broj kontakata</label>
                     <input id="contact-generator-count" name="count" type="number" min="0" max="500" step="1" value="10" required inputmode="numeric" aria-describedby="contact-generator-error" <?= $cities === [] ? 'disabled' : '' ?>>
@@ -259,7 +260,7 @@ $activeNavigation = 'contacts';
                 <button class="dialog-close" type="button" data-dialog-close aria-label="Zatvori dijalog">&times;</button>
             </header>
             <p data-confirm-message>Da li ste sigurni da želite da obrišete ovaj kontakt?</p>
-            <form method="post" action="/contact-delete.php" class="form-actions" data-pending-submit>
+            <form method="post" action="<?= escapeHtml($baseUrl) ?>/contact-delete.php" class="form-actions" data-pending-submit>
                 <input type="hidden" name="contact_id" value="" data-confirm-id>
                 <button class="button button-secondary" type="button" data-dialog-close>Otkaži</button>
                 <button class="button button-danger" type="submit" data-pending-label="Brisanje...">Izbriši</button>

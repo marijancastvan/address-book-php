@@ -71,9 +71,20 @@ function logoutUser(): void
     session_destroy();
 }
 
-function redirectTo(string $path): never
+/*function redirectTo(string $path): never
 {
     header('Location: ' . $path, true, 303);
+    exit;
+}*/
+
+function redirectTo(string $path): never
+{
+    global $config;
+
+    $baseUrl = rtrim($config['app']['base_url'], '/');
+    $location = $baseUrl . '/' . ltrim($path, '/');
+
+    header('Location: ' . $location, true, 303);
     exit;
 }
 

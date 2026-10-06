@@ -18,6 +18,7 @@ $errors = [];
 $tokenIsValid = false;
 $databaseError = false;
 $pdo = null;
+$baseUrl = rtrim($config['app']['base_url'], '/');
 
 try {
     $pdo = db();
@@ -82,13 +83,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Promena lozinke | Address Book</title>
-    <link rel="stylesheet" href="/assets/css/app.css">
-    <link rel="stylesheet" href="/assets/css/auth.css">
-    <script src="/assets/js/form-submit-state.js" defer></script>
+    <link rel="stylesheet" href="<?= escapeHtml($baseUrl) ?>/assets/css/app.css">
+    <link rel="stylesheet" href="<?= escapeHtml($baseUrl) ?>/assets/css/auth.css">
+    <script src="<?= escapeHtml($baseUrl) ?>/assets/js/form-submit-state.js" defer></script>
 </head>
 <body class="auth-page">
     <main class="auth-card">
-        <a class="auth-brand" href="/">ADDRESS BOOK</a>
+        <a class="auth-brand" href="<?= escapeHtml($baseUrl) ?>/">ADDRESS BOOK</a>
         <h1>Promena lozinke</h1>
         <?php foreach ($errors as $error): ?>
             <p class="message message-error" role="alert"><?= escapeHtml($error) ?></p>
@@ -98,10 +99,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <?php if (!$csrfRejected && !$databaseError && $errors === []): ?>
                 <p class="message message-error" role="alert">Link za reset lozinke više nije važeći.</p>
             <?php endif; ?>
-            <p><a href="/login.php">Nazad na prijavu</a></p>
+            <p><a href="<?= escapeHtml($baseUrl) ?>/login.php">Nazad na prijavu</a></p>
         <?php else: ?>
             <p>Unesite novu lozinku i potvrdite je.</p>
-            <form method="post" action="/reset-password.php" data-pending-submit>
+            <form method="post" action="<?= escapeHtml($baseUrl) ?>/reset-password.php" data-pending-submit>
                 <input type="hidden" name="token" value="<?= escapeHtml($token) ?>">
                 <input type="hidden" name="csrf_token" value="<?= escapeHtml(csrfToken()) ?>">
                 <label for="password">Nova lozinka</label>

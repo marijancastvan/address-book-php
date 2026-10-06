@@ -1,4 +1,5 @@
 (() => {
+    const appBase = document.body?.dataset.appBase ?? '';
     const createDialog = document.getElementById('contact-create-dialog');
     const contactForm = createDialog?.querySelector('form.contact-form');
     const cityInput = contactForm?.querySelector('[data-city-name-input]');
@@ -112,7 +113,7 @@
 
         try {
             const query = new URLSearchParams({ format: 'json', search: term });
-            const response = await fetch(`/cities.php?${query.toString()}`, {
+            const response = await fetch(`${appBase}/cities.php?${query.toString()}`, {
                 headers: { Accept: 'application/json' },
                 credentials: 'same-origin',
                 signal: controller.signal,
@@ -253,7 +254,7 @@
 
         let failureMessage = 'Mesto trenutno nije moguće dodati. Pokušajte ponovo.';
         try {
-            const response = await fetch('/city-create.php?format=json', {
+            const response = await fetch(`${appBase}/city-create.php?format=json`, {
                 method: 'POST',
                 headers: {
                     Accept: 'application/json',

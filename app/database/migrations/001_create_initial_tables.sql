@@ -6,9 +6,9 @@ CREATE TABLE users (
     email VARCHAR(255) NOT NULL,
     password_hash VARCHAR(255) NOT NULL,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    updated_at DATETIME NOT NULL,
     PRIMARY KEY (id),
-    UNIQUE KEY uq_users_email (email)
+    UNIQUE KEY uq_users_email (email(191))
 ) ENGINE=InnoDB
   DEFAULT CHARACTER SET=utf8mb4
   COLLATE=utf8mb4_unicode_ci;
@@ -18,9 +18,9 @@ CREATE TABLE cities (
     user_id BIGINT UNSIGNED NOT NULL,
     name VARCHAR(255) NOT NULL,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    updated_at DATETIME NOT NULL,
     PRIMARY KEY (id),
-    UNIQUE KEY uq_cities_user_name (user_id, name),
+    UNIQUE KEY uq_cities_user_name (user_id, name(191)),
     CONSTRAINT fk_cities_user
         FOREIGN KEY (user_id) REFERENCES users (id)
         ON DELETE RESTRICT
@@ -38,7 +38,7 @@ CREATE TABLE contacts (
     email VARCHAR(255) NOT NULL,
     city_id BIGINT UNSIGNED NOT NULL,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    updated_at DATETIME NOT NULL,
     PRIMARY KEY (id),
     KEY idx_contacts_user_id (user_id),
     KEY idx_contacts_city_id (city_id),

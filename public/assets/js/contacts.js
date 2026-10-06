@@ -1,4 +1,5 @@
 (() => {
+    const appBase = document.body?.dataset.appBase ?? '';
     const form = document.querySelector('.contact-search');
     const input = document.getElementById('contact-search');
     const results = document.getElementById('contact-results');
@@ -77,7 +78,7 @@
             const edit = document.createElement('a');
             edit.className = 'button button-small button-secondary';
             edit.textContent = 'Izmeni';
-            edit.href = `/contacts.php?edit_id=${encodeURIComponent(contact.id)}&search=${encodeURIComponent(input.value.trim())}`;
+            edit.href = `${appBase}/contacts.php?edit_id=${encodeURIComponent(contact.id)}&search=${encodeURIComponent(input.value.trim())}`;
 
             const remove = document.createElement('button');
             remove.className = 'button button-small button-danger';
@@ -108,7 +109,7 @@
         const query = new URLSearchParams({ search: term, format: 'json' });
 
         try {
-            const response = await fetch(`/contacts.php?${query.toString()}`, {
+            const response = await fetch(`${appBase}/contacts.php?${query.toString()}`, {
                 method: 'GET',
                 headers: { Accept: 'application/json' },
                 credentials: 'same-origin',

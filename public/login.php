@@ -13,6 +13,7 @@ $errors = [];
 $email = '';
 $successMessage = $_SESSION['flash_success'] ?? null;
 unset($_SESSION['flash_success']);
+$baseUrl = rtrim($config['app']['base_url'], '/');
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $email = strtolower(trim((string) ($_POST['email'] ?? '')));
@@ -43,13 +44,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Prijava | Address Book</title>
-    <link rel="stylesheet" href="/assets/css/app.css">
-    <link rel="stylesheet" href="/assets/css/auth.css">
-    <script src="/assets/js/form-submit-state.js" defer></script>
+    <link rel="stylesheet" href="<?= escapeHtml($baseUrl) ?>/assets/css/app.css">
+    <link rel="stylesheet" href="<?= escapeHtml($baseUrl) ?>/assets/css/auth.css">
+    <script src="<?= escapeHtml($baseUrl) ?>/assets/js/form-submit-state.js" defer></script>
 </head>
 <body class="auth-page">
     <main class="auth-card">
-        <a class="auth-brand" href="/">ADDRESS BOOK</a>
+        <a class="auth-brand" href="<?= escapeHtml($baseUrl) ?>/">ADDRESS BOOK</a>
         <h1>Prijava</h1>
         <?php if ($successMessage !== null): ?>
             <p class="message message-success" role="status"><?= escapeHtml((string) $successMessage) ?></p>
@@ -57,7 +58,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <?php foreach ($errors as $error): ?>
             <p class="message message-error" role="alert"><?= escapeHtml($error) ?></p>
         <?php endforeach; ?>
-        <form method="post" action="/login.php" data-pending-submit>
+        <form method="post" action="<?= escapeHtml($baseUrl) ?>/login.php" data-pending-submit>
             <label for="email">Email</label>
             <input id="email" name="email" type="email" maxlength="255" autocomplete="email" required value="<?= escapeHtml($email) ?>">
 
@@ -67,8 +68,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <button class="button button-primary" type="submit" data-pending-label="Prijavljivanje...">Prijavite se</button>
         </form>
         <div class="auth-links">
-            <p class="auth-register-link">Nemate nalog? <a href="/register.php">Registrujte se</a>.</p>
-            <p class="auth-reset-link"><a href="/forgot-password.php">Zaboravili ste lozinku?</a></p>
+            <p class="auth-register-link">Nemate nalog? <a href="<?= escapeHtml($baseUrl) ?>/register.php">Registrujte se</a>.</p>
+            <p class="auth-reset-link"><a href="<?= escapeHtml($baseUrl) ?>/forgot-password.php">Zaboravili ste lozinku?</a></p>
         </div>
     </main>
 </body>

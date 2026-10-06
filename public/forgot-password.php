@@ -13,6 +13,7 @@ $errors = [];
 $email = '';
 $successMessage = $_SESSION['flash_success'] ?? null;
 unset($_SESSION['flash_success']);
+$baseUrl = rtrim($config['app']['base_url'], '/');
 $genericMessage = 'Ako nalog sa unetom email adresom postoji i slanje emaila je dostupno, dobićete link za reset lozinke.';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -91,13 +92,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Zaboravili ste lozinku? | Address Book</title>
-    <link rel="stylesheet" href="/assets/css/app.css">
-    <link rel="stylesheet" href="/assets/css/auth.css">
-    <script src="/assets/js/form-submit-state.js" defer></script>
+    <link rel="stylesheet" href="<?= escapeHtml($baseUrl) ?>/assets/css/app.css">
+    <link rel="stylesheet" href="<?= escapeHtml($baseUrl) ?>/assets/css/auth.css">
+    <script src="<?= escapeHtml($baseUrl) ?>/assets/js/form-submit-state.js" defer></script>
 </head>
 <body class="auth-page">
     <main class="auth-card">
-        <a class="auth-brand" href="/">ADDRESS BOOK</a>
+        <a class="auth-brand" href="<?= escapeHtml($baseUrl) ?>/">ADDRESS BOOK</a>
         <h1>Zaboravili ste lozinku?</h1>
         <p>Unesite email adresu povezanu sa nalogom. Ako nalog postoji i slanje emaila je dostupno, dobićete link za reset lozinke.</p>
         <?php if ($successMessage !== null): ?>
@@ -106,13 +107,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <?php foreach ($errors as $error): ?>
             <p class="message message-error" role="alert"><?= escapeHtml($error) ?></p>
         <?php endforeach; ?>
-        <form method="post" action="/forgot-password.php" data-pending-submit>
+        <form method="post" action="<?= escapeHtml($baseUrl) ?>/forgot-password.php" data-pending-submit>
             <input type="hidden" name="csrf_token" value="<?= escapeHtml(csrfToken()) ?>">
             <label for="email">Email</label>
             <input id="email" name="email" type="email" maxlength="255" autocomplete="email" required value="<?= escapeHtml($email) ?>">
             <button class="button button-primary" type="submit" data-pending-label="Šaljem...">Pošalji link za reset lozinke</button>
         </form>
-        <p><a href="/login.php">Nazad na prijavu</a></p>
+        <p><a href="<?= escapeHtml($baseUrl) ?>/login.php">Nazad na prijavu</a></p>
     </main>
 </body>
 </html>

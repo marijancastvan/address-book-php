@@ -97,6 +97,56 @@
     background: linear-gradient(140deg, #edf7f5, #fff 75%);
 }
 
+.cities-pagination {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    margin-top: 20px;
+}
+
+.cities-pagination[hidden] {
+    display: none;
+}
+
+.cities-pagination .pagination-link {
+    display: inline-flex;
+    min-width: 40px;
+    min-height: 40px;
+    align-items: center;
+    justify-content: center;
+    padding: 0 12px;
+    border: 1px solid #cbdedb;
+    border-radius: 9px;
+    color: #24545e;
+    background: #fff;
+    font-size: 14px;
+    font-weight: 650;
+    text-decoration: none;
+}
+
+.cities-pagination a.pagination-link:hover {
+    border-color: #68aaa3;
+    background: #eaf5f3;
+}
+
+.cities-pagination .pagination-link.is-current {
+    border-color: #286b70;
+    color: #fff;
+    background: #286b70;
+}
+
+.cities-pagination .pagination-link.is-disabled {
+    color: #8793a5;
+    background: #f4f6f9;
+}
+
+.cities-pagination .pagination-ellipsis {
+    padding: 0 2px;
+    color: #64748b;
+}
+
 .city-form {
     display: grid;
     gap: 11px;

@@ -21,17 +21,39 @@ $userId = currentUserId();
 $isJsonRequest = ($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'GET' && ($_GET['format'] ?? '') === 'json';
 $searchInput = $_GET['search'] ?? '';
 $searchTerm = is_scalar($searchInput) ? trim((string) $searchInput) : '';
+$pageSize = 25;
+$pageInput = filter_var($_GET['page'] ?? 1, FILTER_VALIDATE_INT);
+$page = is_int($pageInput) && $pageInput > 0 ? $pageInput : 1;
+$totalCities = 0;
+$totalPages = 1;
 try {
-    $sql = 'SELECT id, name, created_at, updated_at FROM cities WHERE user_id = :user_id';
-    $parameters = ['user_id' => $userId];
+    $whereSql = ' FROM cities WHERE user_id = :user_id';
+    $parameters = ['user_id' => (int) $userId];
     if ($searchTerm !== '') {
-        $sql .= ' AND name LIKE :name_search';
+        $whereSql .= ' AND name LIKE :name_search';
         $parameters['name_search'] = '%' . $searchTerm . '%';
     }
-    $sql .= ' ORDER BY name ASC';
 
-    $statement = db()->prepare($sql);
-    $statement->execute($parameters);
+    $pdo = db();
+    $countStatement = $pdo->prepare('SELECT COUNT(*)' . $whereSql);
+    $countStatement->execute($parameters);
+    $totalCities = (int) $countStatement->fetchColumn();
+    $totalPages = max(1, (int) ceil($totalCities / $pageSize));
+    $page = min($page, $totalPages);
+    $offset = ($page - 1) * $pageSize;
+
+    $statement = $pdo->prepare(
+        'SELECT id, name, created_at, updated_at' . $whereSql . '
+         ORDER BY name ASC
+         LIMIT :limit OFFSET :offset'
+    );
+    $statement->bindValue(':user_id', (int) $userId, PDO::PARAM_INT);
+    if ($searchTerm !== '') {
+        $statement->bindValue(':name_search', '%' . $searchTerm . '%', PDO::PARAM_STR);
+    }
+    $statement->bindValue(':limit', $pageSize, PDO::PARAM_INT);
+    $statement->bindValue(':offset', $offset, PDO::PARAM_INT);
+    $statement->execute();
     $cities = $statement->fetchAll();
     if ($isJsonRequest) {
         $jsonCities = array_map(static fn (array $city): array => [
@@ -40,7 +62,15 @@ try {
         ], $cities);
         header('Content-Type: application/json; charset=utf-8');
         header('Cache-Control: no-store');
-        echo json_encode(['cities' => $jsonCities], JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE);
+        echo json_encode([
+            'cities' => $jsonCities,
+            'pagination' => [
+                'current_page' => $page,
+                'page_size' => $pageSize,
+                'total_results' => $totalCities,
+                'total_pages' => $totalPages,
+            ],
+        ], JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE);
         exit;
     }
 } catch (PDOException $exception) {
@@ -143,7 +173,7 @@ $baseUrl = rtrim($config['app']['base_url'], '/');
                         <tr>
                             <td data-label="Naziv grada"><?= escapeHtml($city['name']) ?></td>
                             <td data-label="Akcije"><div class="row-actions">
-                                <a class="button button-small button-secondary" href="<?= escapeHtml($baseUrl) ?>/cities.php?edit_id=<?= (int) $city['id'] ?>">Izmeni</a>
+                                <a class="button button-small button-secondary" href="<?= escapeHtml($baseUrl) ?>/cities.php?<?= escapeHtml(http_build_query(['edit_id' => (int) $city['id'], 'search' => $searchTerm, 'page' => $page])) ?>">Izmeni</a>
                                 <button class="button button-small button-danger" type="button" data-confirm-open="city-delete-dialog" data-delete-id="<?= (int) $city['id'] ?>" data-delete-label="<?= escapeHtml($city['name']) ?>">Izbriši</button>
                             </div></td>
                         </tr>
@@ -151,6 +181,41 @@ $baseUrl = rtrim($config['app']['base_url'], '/');
                 </table></div>
             <?php endif; ?>
             </div>
+            <nav class="cities-pagination" id="cities-pagination" aria-label="Paginacija gradova" <?= $totalPages <= 1 ? 'hidden' : '' ?>>
+                <?php if ($page > 1): ?>
+                    <a class="pagination-link" data-page="<?= $page - 1 ?>" href="<?= escapeHtml($baseUrl) ?>/cities.php?<?= escapeHtml(http_build_query(['search' => $searchTerm, 'page' => $page - 1])) ?>" rel="prev">Prethodna</a>
+                <?php else: ?>
+                    <span class="pagination-link is-disabled" aria-disabled="true">Prethodna</span>
+                <?php endif; ?>
+
+                <?php
+                $startPage = max(1, $page - 2);
+                $endPage = min($totalPages, $page + 2);
+                if ($startPage > 1):
+                ?>
+                    <a class="pagination-link" data-page="1" href="<?= escapeHtml($baseUrl) ?>/cities.php?<?= escapeHtml(http_build_query(['search' => $searchTerm, 'page' => 1])) ?>">1</a>
+                    <?php if ($startPage > 2): ?><span class="pagination-ellipsis" aria-hidden="true">…</span><?php endif; ?>
+                <?php endif; ?>
+
+                <?php for ($pageNumber = $startPage; $pageNumber <= $endPage; $pageNumber++): ?>
+                    <?php if ($pageNumber === $page): ?>
+                        <span class="pagination-link is-current" aria-current="page"><?= $pageNumber ?></span>
+                    <?php else: ?>
+                        <a class="pagination-link" data-page="<?= $pageNumber ?>" href="<?= escapeHtml($baseUrl) ?>/cities.php?<?= escapeHtml(http_build_query(['search' => $searchTerm, 'page' => $pageNumber])) ?>"><?= $pageNumber ?></a>
+                    <?php endif; ?>
+                <?php endfor; ?>
+
+                <?php if ($endPage < $totalPages): ?>
+                    <?php if ($endPage < $totalPages - 1): ?><span class="pagination-ellipsis" aria-hidden="true">…</span><?php endif; ?>
+                    <a class="pagination-link" data-page="<?= $totalPages ?>" href="<?= escapeHtml($baseUrl) ?>/cities.php?<?= escapeHtml(http_build_query(['search' => $searchTerm, 'page' => $totalPages])) ?>"><?= $totalPages ?></a>
+                <?php endif; ?>
+
+                <?php if ($page < $totalPages): ?>
+                    <a class="pagination-link" data-page="<?= $page + 1 ?>" href="<?= escapeHtml($baseUrl) ?>/cities.php?<?= escapeHtml(http_build_query(['search' => $searchTerm, 'page' => $page + 1])) ?>" rel="next">Sledeća</a>
+                <?php else: ?>
+                    <span class="pagination-link is-disabled" aria-disabled="true">Sledeća</span>
+                <?php endif; ?>
+            </nav>
         </main>
     </div>
 
@@ -161,7 +226,11 @@ $baseUrl = rtrim($config['app']['base_url'], '/');
     require dirname(__DIR__) . '/app/views/city-form.php';
     if ($editCity !== null) {
         $dialogId = 'city-edit-dialog'; $formIdPrefix = 'city-edit'; $dialogTitle = 'Izmeni grad';
-        $formAction = $baseUrl . '/city-edit.php?id=' . (int) $editCity['id']; $cityName = $editName;
+        $formAction = $baseUrl . '/city-edit.php?' . http_build_query([
+            'id' => (int) $editCity['id'],
+            'search' => $searchTerm,
+            'page' => $page,
+        ]); $cityName = $editName;
         $errors = $editErrors; $cityId = (int) $editCity['id'];
         $openDialog = (($formState['mode'] ?? '') === 'edit') || (($_GET['edit_id'] ?? '') !== '');
         require dirname(__DIR__) . '/app/views/city-form.php';

@@ -21,17 +21,18 @@ $userId = currentUserId();
 $isJsonRequest = ($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'GET' && ($_GET['format'] ?? '') === 'json';
 $searchInput = $_GET['search'] ?? '';
 $searchTerm = is_scalar($searchInput) ? trim((string) $searchInput) : '';
+$pageSize = 25;
+$pageInput = filter_var($_GET['page'] ?? 1, FILTER_VALIDATE_INT);
+$page = is_int($pageInput) && $pageInput > 0 ? $pageInput : 1;
+$totalContacts = 0;
+$totalPages = 1;
 try {
     $pdo = db();
-    $sql = 'SELECT contacts.id, contacts.first_name, contacts.last_name, contacts.phone,
-                   contacts.email, contacts.city_id, cities.name AS city_name
-            FROM contacts
-            INNER JOIN cities ON cities.id = contacts.city_id
-            WHERE contacts.user_id = :user_id';
+    $whereSql = ' WHERE contacts.user_id = :user_id';
     $parameters = ['user_id' => $userId];
 
     if ($searchTerm !== '') {
-        $sql .= ' AND (
+        $whereSql .= ' AND (
             contacts.first_name LIKE :first_name_search
             OR contacts.last_name LIKE :last_name_search
             OR contacts.phone LIKE :phone_search
@@ -46,9 +47,29 @@ try {
         ];
     }
 
-    $sql .= ' ORDER BY contacts.last_name, contacts.first_name';
+    $countStatement = $pdo->prepare('SELECT COUNT(*) FROM contacts' . $whereSql);
+    $countStatement->execute($parameters);
+    $totalContacts = (int) $countStatement->fetchColumn();
+    $totalPages = max(1, (int) ceil($totalContacts / $pageSize));
+    $page = min($page, $totalPages);
+    $offset = ($page - 1) * $pageSize;
+
+    $sql = 'SELECT contacts.id, contacts.first_name, contacts.last_name, contacts.phone,
+                   contacts.email, contacts.city_id, cities.name AS city_name
+            FROM contacts
+            INNER JOIN cities ON cities.id = contacts.city_id' . $whereSql . '
+            ORDER BY contacts.last_name, contacts.first_name
+            LIMIT :limit OFFSET :offset';
     $statement = $pdo->prepare($sql);
-    $statement->execute($parameters);
+    $statement->bindValue(':user_id', (int) $userId, PDO::PARAM_INT);
+    foreach (['first_name_search', 'last_name_search', 'phone_search', 'email_search'] as $parameter) {
+        if (isset($parameters[$parameter])) {
+            $statement->bindValue(':' . $parameter, $parameters[$parameter], PDO::PARAM_STR);
+        }
+    }
+    $statement->bindValue(':limit', $pageSize, PDO::PARAM_INT);
+    $statement->bindValue(':offset', $offset, PDO::PARAM_INT);
+    $statement->execute();
     $contacts = $statement->fetchAll();
     if ($isJsonRequest) {
         $jsonContacts = array_map(static fn (array $contact): array => [
@@ -61,7 +82,15 @@ try {
         ], $contacts);
         header('Content-Type: application/json; charset=utf-8');
         header('Cache-Control: no-store');
-        echo json_encode(['contacts' => $jsonContacts], JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE);
+        echo json_encode([
+            'contacts' => $jsonContacts,
+            'pagination' => [
+                'current_page' => $page,
+                'page_size' => $pageSize,
+                'total_results' => $totalContacts,
+                'total_pages' => $totalPages,
+            ],
+        ], JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE);
         exit;
     }
     $cities = getCitiesForUser($pdo, $userId);
@@ -194,7 +223,7 @@ $baseUrl = rtrim($config['app']['base_url'], '/');
                                     <td data-label="Email"><?= escapeHtml($contact['email']) ?></td>
                                     <td data-label="Grad"><?= escapeHtml($contact['city_name']) ?></td>
                                     <td data-label="Akcije"><div class="row-actions">
-                                        <a class="button button-small button-secondary" href="<?= escapeHtml($baseUrl) ?>/contacts.php?edit_id=<?= (int) $contact['id'] ?>&amp;search=<?= rawurlencode($searchTerm) ?>">Izmeni</a>
+                                        <a class="button button-small button-secondary" href="<?= escapeHtml($baseUrl) ?>/contacts.php?edit_id=<?= (int) $contact['id'] ?>&amp;search=<?= rawurlencode($searchTerm) ?>&amp;page=<?= $page ?>">Izmeni</a>
                                         <button class="button button-small button-danger" type="button" data-confirm-open="contact-delete-dialog" data-delete-id="<?= (int) $contact['id'] ?>" data-delete-label="<?= escapeHtml($contact['first_name'] . ' ' . $contact['last_name']) ?>">Izbriši</button>
                                     </div></td>
                                 </tr>
@@ -204,6 +233,41 @@ $baseUrl = rtrim($config['app']['base_url'], '/');
                 </div>
             <?php endif; ?>
             </div>
+            <nav class="contacts-pagination" id="contacts-pagination" aria-label="Paginacija kontakata" <?= $totalPages <= 1 ? 'hidden' : '' ?>>
+                <?php if ($page > 1): ?>
+                    <a class="pagination-link" href="<?= escapeHtml($baseUrl) ?>/contacts.php?<?= escapeHtml(http_build_query(['search' => $searchTerm, 'page' => $page - 1])) ?>" rel="prev">Prethodna</a>
+                <?php else: ?>
+                    <span class="pagination-link is-disabled" aria-disabled="true">Prethodna</span>
+                <?php endif; ?>
+
+                <?php
+                $startPage = max(1, $page - 2);
+                $endPage = min($totalPages, $page + 2);
+                if ($startPage > 1):
+                ?>
+                    <a class="pagination-link" href="<?= escapeHtml($baseUrl) ?>/contacts.php?<?= escapeHtml(http_build_query(['search' => $searchTerm, 'page' => 1])) ?>">1</a>
+                    <?php if ($startPage > 2): ?><span class="pagination-ellipsis" aria-hidden="true">…</span><?php endif; ?>
+                <?php endif; ?>
+
+                <?php for ($pageNumber = $startPage; $pageNumber <= $endPage; $pageNumber++): ?>
+                    <?php if ($pageNumber === $page): ?>
+                        <span class="pagination-link is-current" aria-current="page"><?= $pageNumber ?></span>
+                    <?php else: ?>
+                        <a class="pagination-link" href="<?= escapeHtml($baseUrl) ?>/contacts.php?<?= escapeHtml(http_build_query(['search' => $searchTerm, 'page' => $pageNumber])) ?>"><?= $pageNumber ?></a>
+                    <?php endif; ?>
+                <?php endfor; ?>
+
+                <?php if ($endPage < $totalPages): ?>
+                    <?php if ($endPage < $totalPages - 1): ?><span class="pagination-ellipsis" aria-hidden="true">…</span><?php endif; ?>
+                    <a class="pagination-link" href="<?= escapeHtml($baseUrl) ?>/contacts.php?<?= escapeHtml(http_build_query(['search' => $searchTerm, 'page' => $totalPages])) ?>"><?= $totalPages ?></a>
+                <?php endif; ?>
+
+                <?php if ($page < $totalPages): ?>
+                    <a class="pagination-link" href="<?= escapeHtml($baseUrl) ?>/contacts.php?<?= escapeHtml(http_build_query(['search' => $searchTerm, 'page' => $page + 1])) ?>" rel="next">Sledeća</a>
+                <?php else: ?>
+                    <span class="pagination-link is-disabled" aria-disabled="true">Sledeća</span>
+                <?php endif; ?>
+            </nav>
         </main>
     </div>
 
@@ -222,7 +286,11 @@ $baseUrl = rtrim($config['app']['base_url'], '/');
         $dialogId = 'contact-edit-dialog';
         $formIdPrefix = 'contact-edit';
         $dialogTitle = 'Izmeni kontakt';
-        $formAction = $baseUrl . '/contact-edit.php?id=' . (int) $editContact['id'];
+        $formAction = $baseUrl . '/contact-edit.php?' . http_build_query([
+            'id' => (int) $editContact['id'],
+            'search' => $searchTerm,
+            'page' => $page,
+        ]);
         $formValues = $editValues;
         $errors = $editErrors;
         $contactId = (int) $editContact['id'];

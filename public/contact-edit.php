@@ -14,8 +14,13 @@ $contactId = filter_var($_GET['id'] ?? $_POST['contact_id'] ?? null, FILTER_VALI
 if ($contactId === false || $contactId === null) {
     redirectTo('/contacts.php?error=not_found');
 }
+$returnPageInput = filter_var($_GET['page'] ?? $_POST['page'] ?? 1, FILTER_VALIDATE_INT);
+$returnPage = is_int($returnPageInput) && $returnPageInput > 0 ? $returnPageInput : 1;
+$returnSearchInput = $_GET['search'] ?? $_POST['search'] ?? '';
+$returnSearch = is_scalar($returnSearchInput) ? trim((string) $returnSearchInput) : '';
+$returnContext = ['search' => $returnSearch, 'page' => $returnPage];
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-    redirectTo('/contacts.php?edit_id=' . $contactId);
+    redirectTo('/contacts.php?' . http_build_query(['edit_id' => $contactId] + $returnContext));
 }
 
 $userId = currentUserId();
@@ -27,7 +32,7 @@ try {
     $ownedContact = $pdo->prepare('SELECT id FROM contacts WHERE id = :contact_id AND user_id = :user_id LIMIT 1');
     $ownedContact->execute(['contact_id' => $contactId, 'user_id' => $userId]);
     if ($ownedContact->fetch() === false) {
-        redirectTo('/contacts.php?error=not_found');
+        redirectTo('/contacts.php?' . http_build_query(['error' => 'not_found'] + $returnContext));
     }
 
     $cityId = filter_var($formValues['city_id'], FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
@@ -51,7 +56,7 @@ try {
             'contact_id' => $contactId,
             'user_id' => $userId,
         ]);
-        redirectTo('/contacts.php?success=updated');
+        redirectTo('/contacts.php?' . http_build_query(['success' => 'updated'] + $returnContext));
     }
 } catch (PDOException $exception) {
     error_log('Contact editing database error: ' . $exception->getMessage());
@@ -64,4 +69,4 @@ $_SESSION['contact_form_state'] = [
     'values' => $formValues,
     'errors' => $errors,
 ];
-redirectTo('/contacts.php?edit_id=' . $contactId);
+redirectTo('/contacts.php?' . http_build_query(['edit_id' => $contactId] + $returnContext));

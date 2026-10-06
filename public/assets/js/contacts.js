@@ -4,6 +4,7 @@
     const input = document.getElementById('contact-search');
     const results = document.getElementById('contact-results');
     const status = document.getElementById('contact-search-status');
+    const pagination = document.getElementById('contacts-pagination');
 
     if (!form || !input || !results) return;
 
@@ -25,8 +26,82 @@
         return cell;
     };
 
-    const renderContacts = (contacts) => {
+    const buildPageUrl = (page, term, extra = {}) => {
+        const params = new URLSearchParams({ page: String(page), ...extra });
+        if (term !== '') params.set('search', term);
+        return `${appBase}/contacts.php?${params.toString()}`;
+    };
+
+    const createPaginationLink = (label, page, term, options = {}) => {
+        const link = document.createElement('a');
+        link.className = 'pagination-link';
+        link.textContent = label;
+        link.href = buildPageUrl(page, term);
+        if (options.current) {
+            link.classList.add('is-current');
+            link.setAttribute('aria-current', 'page');
+        }
+        if (options.rel) link.rel = options.rel;
+        return link;
+    };
+
+    const renderPagination = (metadata, term) => {
+        if (!pagination) return;
+
+        const currentPage = Number(metadata.current_page) || 1;
+        const totalPages = Number(metadata.total_pages) || 1;
+        pagination.replaceChildren();
+        pagination.hidden = totalPages <= 1;
+        if (pagination.hidden) return;
+
+        if (currentPage > 1) {
+            pagination.append(createPaginationLink('Prethodna', currentPage - 1, term, { rel: 'prev' }));
+        } else {
+            const previous = document.createElement('span');
+            previous.className = 'pagination-link is-disabled';
+            previous.textContent = 'Prethodna';
+            previous.setAttribute('aria-disabled', 'true');
+            pagination.append(previous);
+        }
+
+        const startPage = Math.max(1, currentPage - 2);
+        const endPage = Math.min(totalPages, currentPage + 2);
+        const appendEllipsis = () => {
+            const ellipsis = document.createElement('span');
+            ellipsis.className = 'pagination-ellipsis';
+            ellipsis.setAttribute('aria-hidden', 'true');
+            ellipsis.textContent = '…';
+            pagination.append(ellipsis);
+        };
+
+        if (startPage > 1) {
+            pagination.append(createPaginationLink('1', 1, term));
+            if (startPage > 2) appendEllipsis();
+        }
+        for (let page = startPage; page <= endPage; page += 1) {
+            pagination.append(createPaginationLink(String(page), page, term, {
+                current: page === currentPage,
+            }));
+        }
+        if (endPage < totalPages) {
+            if (endPage < totalPages - 1) appendEllipsis();
+            pagination.append(createPaginationLink(String(totalPages), totalPages, term));
+        }
+
+        if (currentPage < totalPages) {
+            pagination.append(createPaginationLink('Sledeća', currentPage + 1, term, { rel: 'next' }));
+        } else {
+            const next = document.createElement('span');
+            next.className = 'pagination-link is-disabled';
+            next.textContent = 'Sledeća';
+            next.setAttribute('aria-disabled', 'true');
+            pagination.append(next);
+        }
+    };
+
+    const renderContacts = (contacts, metadata, term) => {
         results.replaceChildren();
+        renderPagination(metadata, term);
 
         if (contacts.length === 0) {
             const emptyState = document.createElement('section');
@@ -78,7 +153,7 @@
             const edit = document.createElement('a');
             edit.className = 'button button-small button-secondary';
             edit.textContent = 'Izmeni';
-            edit.href = `${appBase}/contacts.php?edit_id=${encodeURIComponent(contact.id)}&search=${encodeURIComponent(input.value.trim())}`;
+            edit.href = buildPageUrl(metadata.current_page, term, { edit_id: String(contact.id) });
 
             const remove = document.createElement('button');
             remove.className = 'button button-small button-danger';
@@ -99,14 +174,14 @@
         results.append(wrapper);
     };
 
-    const fetchContacts = async (term, version) => {
+    const fetchContacts = async (term, page, version) => {
         const controller = new AbortController();
         activeController = controller;
         results.setAttribute('aria-busy', 'true');
         status.textContent = 'Pretraga...';
         status.dataset.state = 'loading';
 
-        const query = new URLSearchParams({ search: term, format: 'json' });
+        const query = new URLSearchParams({ search: term, page: String(page), format: 'json' });
 
         try {
             const response = await fetch(`${appBase}/contacts.php?${query.toString()}`, {
@@ -118,16 +193,18 @@
             const payload = await response.json();
 
             if (version !== requestVersion) return;
-            if (!response.ok || !Array.isArray(payload.contacts)) {
+            if (!response.ok || !Array.isArray(payload.contacts) || !payload.pagination) {
                 throw new Error(payload.error || 'Live pretraga nije uspela.');
             }
 
-            renderContacts(payload.contacts);
+            renderContacts(payload.contacts, payload.pagination, term);
             status.textContent = '';
             status.removeAttribute('data-state');
         } catch (error) {
             if (error.name === 'AbortError' || version !== requestVersion) return;
             results.replaceChildren();
+            pagination?.replaceChildren();
+            if (pagination) pagination.hidden = true;
             status.textContent = 'Pretraga trenutno nije dostupna. Pokušajte ponovo.';
             status.dataset.state = 'error';
         } finally {
@@ -144,7 +221,7 @@
         activeController?.abort();
         const term = input.value.trim();
 
-        debounceTimer = window.setTimeout(() => fetchContacts(term, version), delay);
+        debounceTimer = window.setTimeout(() => fetchContacts(term, 1, version), delay);
     };
 
     input.addEventListener('input', () => startSearch(250));

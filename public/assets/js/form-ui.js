@@ -27,7 +27,7 @@
             const idField = dialog?.querySelector('[data-confirm-id]');
             if (idField) idField.value = confirmTrigger.dataset.deleteId || '';
             const message = dialog?.querySelector('[data-confirm-message]');
-            if (message) {
+            if (message && dialog?.dataset.confirmStaticMessage !== 'true') {
                 const entity = dialog.dataset.confirmEntity || 'stavku';
                 const label = confirmTrigger.dataset.deleteLabel || '';
                 message.textContent = label
@@ -45,7 +45,22 @@
     });
 
     dialogs.forEach((dialog) => {
-        dialog.addEventListener('close', syncScrollLock);
+        dialog.addEventListener('close', () => {
+            syncScrollLock();
+
+            if (dialog.dataset.resetOnClose !== 'true') return;
+
+            dialog.querySelectorAll('input[name="name"]').forEach((field) => {
+                field.value = '';
+                field.defaultValue = '';
+                field.classList.remove('is-invalid');
+                field.removeAttribute('aria-invalid');
+            });
+            dialog.querySelectorAll('.field-error, .message-error').forEach((message) => {
+                message.textContent = '';
+                message.hidden = true;
+            });
+        });
 
         if (dialog.dataset.openOnLoad === 'true') openDialog(dialog);
     });
@@ -70,6 +85,11 @@
 
         if (field.type === 'email' && value !== '' && field.validity.typeMismatch) {
             return field.dataset.typeMessage || 'Unesite ispravnu email adresu.';
+        }
+
+        const maxUnicodeLength = Number(field.dataset.maxUnicodeLength);
+        if (maxUnicodeLength > 0 && Array.from(value).length > maxUnicodeLength) {
+            return field.dataset.lengthMessage || `Polje može imati najviše ${maxUnicodeLength} Unicode znakova.`;
         }
 
         if (field.maxLength > 0 && Array.from(value).length > field.maxLength) {

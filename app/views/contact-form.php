@@ -1,4 +1,4 @@
-<dialog class="app-dialog" id="<?= escapeHtml($dialogId) ?>" aria-labelledby="<?= escapeHtml($dialogId) ?>-title" <?= !empty($openDialog) ? 'data-open-on-load="true"' : '' ?>>
+<dialog class="app-dialog" id="<?= escapeHtml($dialogId) ?>" aria-labelledby="<?= escapeHtml($dialogId) ?>-title" <?= !empty($openDialog) ? 'data-open-on-load="true"' : '' ?> <?= !empty($resetTagSelectionOnClose) ? 'data-reset-contact-tags-on-close="true"' : '' ?>>
     <section class="dialog-panel">
         <header class="dialog-header">
             <div>
@@ -16,6 +16,7 @@
         <?php endif; ?>
 
         <form class="contact-form" method="post" action="<?= escapeHtml($formAction) ?>" novalidate data-validate-form data-pending-submit>
+            <input type="hidden" name="csrf_token" value="<?= escapeHtml(csrfToken()) ?>">
             <?php if (isset($contactId)): ?>
                 <input type="hidden" name="contact_id" value="<?= (int) $contactId ?>">
             <?php endif; ?>
@@ -70,6 +71,25 @@
                     <p class="field-error" id="<?= escapeHtml($cityFieldId) ?>-error" <?= $cityError === '' ? 'hidden' : '' ?>><?= escapeHtml($cityError) ?></p>
                 </div>
             <?php endif; ?>
+
+            <?php $tagError = $errors['tag_ids'] ?? ''; ?>
+            <fieldset class="contact-tag-fieldset" aria-describedby="<?= escapeHtml($formIdPrefix) ?>-tag_ids-error">
+                <legend>Tagovi <span>(opciono)</span></legend>
+                <?php if ($availableTags === []): ?>
+                    <p class="contact-tags-empty">Nemate tagove. <a href="<?= escapeHtml($baseUrl) ?>/tags.php">Upravljajte tagovima</a>.</p>
+                <?php else: ?>
+                    <div class="contact-tag-options">
+                        <?php foreach ($availableTags as $tag): ?>
+                            <?php $tagId = (int) $tag['id']; $tagInputId = $formIdPrefix . '-tag-' . $tagId; ?>
+                            <label class="contact-tag-option" for="<?= escapeHtml($tagInputId) ?>">
+                                <input id="<?= escapeHtml($tagInputId) ?>" type="checkbox" name="tag_ids[]" value="<?= $tagId ?>" <?= in_array($tagId, $selectedTagIds, true) ? 'checked' : '' ?>>
+                                <span><?= escapeHtml((string) $tag['name']) ?></span>
+                            </label>
+                        <?php endforeach; ?>
+                    </div>
+                <?php endif; ?>
+                <p class="field-error contact-tag-error" id="<?= escapeHtml($formIdPrefix) ?>-tag_ids-error" <?= $tagError === '' ? 'hidden' : '' ?>><?= escapeHtml((string) $tagError) ?></p>
+            </fieldset>
 
             <div class="form-actions">
                 <button class="button button-primary" type="submit" data-pending-label="Čuvanje...">Sačuvaj</button>

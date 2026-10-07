@@ -77,6 +77,154 @@ function cityBelongsToUser(PDO $pdo, int $cityId, int $userId): bool
     return $statement->fetch() !== false;
 }
 
+function contactTagIdsFromInput(array $source): array
+{
+    if (!array_key_exists('tag_ids', $source)) {
+        return ['ids' => [], 'error' => null];
+    }
+
+    if (!is_array($source['tag_ids'])) {
+        return ['ids' => [], 'error' => 'Izaberite samo važeće tagove sa liste.'];
+    }
+
+    $ids = [];
+    $hasInvalidId = false;
+    foreach ($source['tag_ids'] as $value) {
+        if (!is_int($value) && !is_string($value)) {
+            $hasInvalidId = true;
+            continue;
+        }
+
+        $id = filter_var($value, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
+        if ($id === false) {
+            $hasInvalidId = true;
+            continue;
+        }
+
+        $ids[(string) $id] = $id;
+    }
+
+    return [
+        'ids' => array_values($ids),
+        'error' => $hasInvalidId ? 'Izaberite samo važeće tagove sa liste.' : null,
+    ];
+}
+
+function selectedContactTagIds(mixed $values): array
+{
+    if (!is_array($values)) {
+        return [];
+    }
+
+    $ids = [];
+    foreach ($values as $value) {
+        if (!is_int($value) && !is_string($value)) {
+            continue;
+        }
+        $id = filter_var($value, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
+        if ($id !== false) {
+            $ids[(string) $id] = $id;
+        }
+    }
+
+    return array_values($ids);
+}
+
+function contactTagsBelongToUser(PDO $pdo, int $userId, array $tagIds): bool
+{
+    if ($tagIds === []) {
+        return true;
+    }
+
+    $placeholders = [];
+    $parameters = ['user_id' => $userId];
+    foreach (array_values($tagIds) as $index => $tagId) {
+        $placeholder = 'tag_id_' . $index;
+        $placeholders[] = ':' . $placeholder;
+        $parameters[$placeholder] = $tagId;
+    }
+
+    $statement = $pdo->prepare(
+        'SELECT COUNT(*) FROM tags WHERE user_id = :user_id AND id IN (' . implode(', ', $placeholders) . ')'
+    );
+    $statement->execute($parameters);
+
+    return (int) $statement->fetchColumn() === count($tagIds);
+}
+
+function getTagsForUser(PDO $pdo, int $userId): array
+{
+    $statement = $pdo->prepare('SELECT id, name FROM tags WHERE user_id = :user_id ORDER BY name ASC');
+    $statement->execute(['user_id' => $userId]);
+
+    return $statement->fetchAll();
+}
+
+/** @return array<int, array<int, array{id: int, name: string}>> */
+function getTagsForContacts(PDO $pdo, int $userId, array $contacts): array
+{
+    $contactIds = array_values(array_unique(array_map(
+        static fn (array $contact): int => (int) $contact['id'],
+        $contacts,
+    )));
+    if ($contactIds === []) {
+        return [];
+    }
+
+    $placeholders = [];
+    $parameters = ['user_id' => $userId];
+    foreach ($contactIds as $index => $contactId) {
+        $placeholder = 'contact_id_' . $index;
+        $placeholders[] = ':' . $placeholder;
+        $parameters[$placeholder] = $contactId;
+    }
+
+    $statement = $pdo->prepare(
+        'SELECT contact_tags.contact_id, tags.id AS tag_id, tags.name AS tag_name
+         FROM contact_tags
+         INNER JOIN tags ON tags.id = contact_tags.tag_id AND tags.user_id = contact_tags.user_id
+         WHERE contact_tags.user_id = :user_id
+           AND contact_tags.contact_id IN (' . implode(', ', $placeholders) . ')
+         ORDER BY tags.name ASC'
+    );
+    $statement->execute($parameters);
+
+    $tagsByContact = [];
+    foreach ($statement->fetchAll() as $row) {
+        $contactId = (int) $row['contact_id'];
+        $tagsByContact[$contactId][] = [
+            'id' => (int) $row['tag_id'],
+            'name' => (string) $row['tag_name'],
+        ];
+    }
+
+    return $tagsByContact;
+}
+
+function synchronizeContactTags(PDO $pdo, int $userId, int $contactId, array $tagIds): void
+{
+    $delete = $pdo->prepare(
+        'DELETE FROM contact_tags WHERE user_id = :user_id AND contact_id = :contact_id'
+    );
+    $delete->execute(['user_id' => $userId, 'contact_id' => $contactId]);
+
+    if ($tagIds === []) {
+        return;
+    }
+
+    $insert = $pdo->prepare(
+        'INSERT INTO contact_tags (user_id, contact_id, tag_id)
+         VALUES (:user_id, :contact_id, :tag_id)'
+    );
+    foreach ($tagIds as $tagId) {
+        $insert->execute([
+            'user_id' => $userId,
+            'contact_id' => $contactId,
+            'tag_id' => $tagId,
+        ]);
+    }
+}
+
 function contactSuccessMessage(): ?string
 {
     return match ($_GET['success'] ?? '') {

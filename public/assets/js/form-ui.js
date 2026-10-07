@@ -48,18 +48,30 @@
         dialog.addEventListener('close', () => {
             syncScrollLock();
 
-            if (dialog.dataset.resetOnClose !== 'true') return;
+            if (dialog.dataset.resetOnClose === 'true') {
+                dialog.querySelectorAll('input[name="name"]').forEach((field) => {
+                    field.value = '';
+                    field.defaultValue = '';
+                    field.classList.remove('is-invalid');
+                    field.removeAttribute('aria-invalid');
+                });
+                dialog.querySelectorAll('.field-error, .message-error').forEach((message) => {
+                    message.textContent = '';
+                    message.hidden = true;
+                });
+            }
 
-            dialog.querySelectorAll('input[name="name"]').forEach((field) => {
-                field.value = '';
-                field.defaultValue = '';
-                field.classList.remove('is-invalid');
-                field.removeAttribute('aria-invalid');
-            });
-            dialog.querySelectorAll('.field-error, .message-error').forEach((message) => {
-                message.textContent = '';
-                message.hidden = true;
-            });
+            if (dialog.dataset.resetContactTagsOnClose === 'true') {
+                dialog.querySelectorAll('input[name="tag_ids[]"]').forEach((checkbox) => {
+                    checkbox.checked = false;
+                    checkbox.defaultChecked = false;
+                });
+                const tagError = dialog.querySelector('.contact-tag-error');
+                if (tagError) {
+                    tagError.textContent = '';
+                    tagError.hidden = true;
+                }
+            }
         });
 
         if (dialog.dataset.openOnLoad === 'true') openDialog(dialog);

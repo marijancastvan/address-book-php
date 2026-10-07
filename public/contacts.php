@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 require_once dirname(__DIR__) . '/app/bootstrap.php';
 require_once dirname(__DIR__) . '/app/auth.php';
+require_once dirname(__DIR__) . '/app/csrf.php';
 require_once dirname(__DIR__) . '/app/contact-helpers.php';
 
 if (!isAuthenticated()) {
@@ -71,6 +72,12 @@ try {
     $statement->bindValue(':offset', $offset, PDO::PARAM_INT);
     $statement->execute();
     $contacts = $statement->fetchAll();
+    $tagsByContact = getTagsForContacts($pdo, (int) $userId, $contacts);
+    foreach ($contacts as &$contact) {
+        $contact['tags'] = $tagsByContact[(int) $contact['id']] ?? [];
+    }
+    unset($contact);
+
     if ($isJsonRequest) {
         $jsonContacts = array_map(static fn (array $contact): array => [
             'id' => (int) $contact['id'],
@@ -79,6 +86,10 @@ try {
             'phone' => (string) $contact['phone'],
             'email' => (string) $contact['email'],
             'city_name' => (string) $contact['city_name'],
+            'tags' => array_map(static fn (array $tag): array => [
+                'id' => (int) $tag['id'],
+                'name' => (string) $tag['name'],
+            ], $contact['tags']),
         ], $contacts);
         header('Content-Type: application/json; charset=utf-8');
         header('Cache-Control: no-store');
@@ -94,6 +105,7 @@ try {
         exit;
     }
     $cities = getCitiesForUser($pdo, $userId);
+    $availableTags = getTagsForUser($pdo, (int) $userId);
 } catch (PDOException $exception) {
     error_log('Contacts list database error: ' . $exception->getMessage());
     http_response_code(500);
@@ -110,21 +122,25 @@ $formState = $_SESSION['contact_form_state'] ?? null;
 unset($_SESSION['contact_form_state']);
 $formState = is_array($formState) ? $formState : [];
 $createValues = ['first_name' => '', 'last_name' => '', 'phone' => '', 'email' => '', 'city_id' => ''];
+$createSelectedTagIds = [];
 $createErrors = [];
 $openCreate = ($_GET['modal'] ?? '') === 'create';
 $openEditId = filter_var($_GET['edit_id'] ?? null, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
 if (($formState['mode'] ?? '') === 'create') {
     $createValues = contactFormValues(is_array($formState['values'] ?? null) ? $formState['values'] : []);
+    $createSelectedTagIds = selectedContactTagIds($formState['tag_ids'] ?? []);
     $createErrors = is_array($formState['errors'] ?? null) ? $formState['errors'] : [];
     $openCreate = true;
 }
 
 $editContact = null;
 $editValues = ['first_name' => '', 'last_name' => '', 'phone' => '', 'email' => '', 'city_id' => ''];
+$editSelectedTagIds = [];
 $editErrors = [];
 if (($formState['mode'] ?? '') === 'edit') {
     $openEditId = filter_var($formState['contact_id'] ?? null, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
     $editValues = contactFormValues(is_array($formState['values'] ?? null) ? $formState['values'] : []);
+    $editSelectedTagIds = selectedContactTagIds($formState['tag_ids'] ?? []);
     $editErrors = is_array($formState['errors'] ?? null) ? $formState['errors'] : [];
 }
 if ($openEditId !== false && $openEditId !== null) {
@@ -139,6 +155,7 @@ if ($openEditId !== false && $openEditId !== null) {
                     'email' => $listedContact['email'],
                     'city_id' => (string) $listedContact['city_id'],
                 ];
+                $editSelectedTagIds = array_column($listedContact['tags'], 'id');
             }
             break;
         }
@@ -213,7 +230,7 @@ $baseUrl = rtrim($config['app']['base_url'], '/');
             <?php else: ?>
                 <div class="table-wrap">
                     <table>
-                        <thead><tr><th scope="col">Ime</th><th scope="col">Prezime</th><th scope="col">Telefon</th><th scope="col">Email</th><th scope="col">Grad</th><th scope="col">Akcije</th></tr></thead>
+                        <thead><tr><th scope="col">Ime</th><th scope="col">Prezime</th><th scope="col">Telefon</th><th scope="col">Email</th><th scope="col">Grad</th><th scope="col">Tagovi</th><th scope="col">Akcije</th></tr></thead>
                         <tbody>
                             <?php foreach ($contacts as $contact): ?>
                                 <tr>
@@ -222,6 +239,10 @@ $baseUrl = rtrim($config['app']['base_url'], '/');
                                     <td data-label="Telefon"><?= escapeHtml($contact['phone']) ?></td>
                                     <td data-label="Email"><?= escapeHtml($contact['email']) ?></td>
                                     <td data-label="Grad"><?= escapeHtml($contact['city_name']) ?></td>
+                                    <td data-label="Tagovi"><div class="contact-tags">
+                                        <?php if ($contact['tags'] === []): ?><span class="contact-tag-empty">—</span><?php endif; ?>
+                                        <?php foreach ($contact['tags'] as $tag): ?><span class="contact-tag"><?= escapeHtml((string) $tag['name']) ?></span><?php endforeach; ?>
+                                    </div></td>
                                     <td data-label="Akcije"><div class="row-actions">
                                         <a class="button button-small button-secondary" href="<?= escapeHtml($baseUrl) ?>/contacts.php?edit_id=<?= (int) $contact['id'] ?>&amp;search=<?= rawurlencode($searchTerm) ?>&amp;page=<?= $page ?>">Izmeni</a>
                                         <button class="button button-small button-danger" type="button" data-confirm-open="contact-delete-dialog" data-delete-id="<?= (int) $contact['id'] ?>" data-delete-label="<?= escapeHtml($contact['first_name'] . ' ' . $contact['last_name']) ?>">Izbriši</button>
@@ -278,7 +299,9 @@ $baseUrl = rtrim($config['app']['base_url'], '/');
     $formAction = $baseUrl . '/contact-create.php';
     $formValues = $createValues;
     $errors = $createErrors;
+    $selectedTagIds = $createSelectedTagIds;
     $openDialog = $openCreate;
+    $resetTagSelectionOnClose = true;
     unset($contactId);
     require dirname(__DIR__) . '/app/views/contact-form.php';
 
@@ -293,8 +316,10 @@ $baseUrl = rtrim($config['app']['base_url'], '/');
         ]);
         $formValues = $editValues;
         $errors = $editErrors;
+        $selectedTagIds = $editSelectedTagIds;
         $contactId = (int) $editContact['id'];
         $openDialog = (($formState['mode'] ?? '') === 'edit') || (($_GET['edit_id'] ?? '') !== '');
+        $resetTagSelectionOnClose = false;
         require dirname(__DIR__) . '/app/views/contact-form.php';
     }
     ?>

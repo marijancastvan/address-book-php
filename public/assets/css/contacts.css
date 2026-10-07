@@ -176,6 +176,95 @@ a.pagination-link:hover {
     margin: 4px 0 7px;
 }
 
+.contact-tag-fieldset {
+    min-width: 0;
+    margin: 4px 0 0;
+    padding: 13px 14px 10px;
+    border: 1px solid #d7e0ed;
+    border-radius: 10px;
+}
+
+.contact-tag-fieldset legend {
+    padding: 0 5px;
+    color: #293750;
+    font-size: 14px;
+    font-weight: 660;
+}
+
+.contact-tag-fieldset legend span,
+.contact-tags-empty {
+    color: #64748b;
+    font-size: 13px;
+    font-weight: 450;
+}
+
+.contact-tags-empty {
+    margin: 0;
+}
+
+.contact-tag-options {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.contact-tag-option {
+    display: inline-flex !important;
+    min-height: 38px;
+    align-items: center;
+    gap: 8px;
+    margin: 0 !important;
+    padding: 6px 10px;
+    border: 1px solid #d7e0ed;
+    border-radius: 999px;
+    color: #293750;
+    background: #f8faff;
+    cursor: pointer;
+}
+
+.contact-tag-option input {
+    width: 16px;
+    min-width: 16px;
+    height: 16px;
+    min-height: 16px;
+    margin: 0;
+    accent-color: #286b70;
+}
+
+.contact-tag-option span {
+    overflow-wrap: anywhere;
+}
+
+.contact-tag-error:not([hidden]) {
+    margin-top: 9px;
+}
+
+.contact-tags {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 5px;
+}
+
+.contact-tag {
+    display: inline-flex;
+    max-width: 100%;
+    align-items: center;
+    padding: 3px 8px;
+    border: 1px solid #c7e2de;
+    border-radius: 999px;
+    color: #24545e;
+    background: #eaf5f3;
+    font-size: 12px;
+    font-weight: 650;
+    line-height: 1.4;
+    overflow-wrap: anywhere;
+}
+
+.contact-tag-empty {
+    color: #94a3b8;
+}
+
 @media (max-width: 680px) {
     .contact-search {
         align-items: stretch;

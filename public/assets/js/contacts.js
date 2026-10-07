@@ -14,6 +14,7 @@
         ['phone', 'Telefon'],
         ['email', 'Email'],
         ['city_name', 'Grad'],
+        ['tags', 'Tagovi'],
     ];
     let debounceTimer = null;
     let requestVersion = 0;
@@ -143,6 +144,29 @@
         for (const contact of contacts) {
             const row = document.createElement('tr');
             for (const [key, label] of columns) {
+                if (key === 'tags') {
+                    const cell = document.createElement('td');
+                    cell.dataset.label = label;
+                    const tagList = document.createElement('div');
+                    tagList.className = 'contact-tags';
+                    const tags = Array.isArray(contact.tags) ? contact.tags : [];
+                    if (tags.length === 0) {
+                        const empty = document.createElement('span');
+                        empty.className = 'contact-tag-empty';
+                        empty.textContent = '—';
+                        tagList.append(empty);
+                    } else {
+                        for (const tag of tags) {
+                            const badge = document.createElement('span');
+                            badge.className = 'contact-tag';
+                            badge.textContent = typeof tag.name === 'string' ? tag.name : '';
+                            tagList.append(badge);
+                        }
+                    }
+                    cell.append(tagList);
+                    row.append(cell);
+                    continue;
+                }
                 row.append(createCell('td', label, contact[key]));
             }
 

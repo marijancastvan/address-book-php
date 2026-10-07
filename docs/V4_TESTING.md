@@ -47,3 +47,34 @@ The tests used the local `address_book` database (MySQL 8.0.46) and a temporary 
 - Empty state, ordinary create/edit, duplicate-name feedback, whitespace trimming, and retaining the submitted value while a validation dialog remains open.
 - Cancel and confirm in the delete dialog, including verifying that deleting a tag removes its contact links while preserving the contacts.
 - The UI display of the 150/151-character validation boundary and normal owner-authorized edit/delete flows.
+
+## V4.1.3 — Contact tags
+
+Use a signed-in account with at least one city. The contact forms submit to `contact-create.php` and `contact-edit.php`; the checkbox field is `tag_ids[]`, the CSRF field is `csrf_token`, and edit forms also submit `contact_id`.
+
+1. Create a contact without checking any tags. Expected: the contact is saved with no `contact_tags` rows.
+2. Create another contact with two or more of your tags checked. Expected: one contact row and one association per distinct selected tag; the contact appears only once in the table.
+3. Edit that contact and add a tag. Expected: the existing associations are retained and the new one is added.
+4. Edit it again and choose a different set of tags. Expected: the old set is replaced by exactly the new set.
+5. Edit it and uncheck all tags. Expected: all its tag links are removed, while the contact remains.
+6. Cause another contact validation error after selecting tags. Expected: the entered contact fields, checked tags, and error remain visible when the form reopens. Cancel the create form, reopen it, and confirm its tag selection is empty. Open edit for two different contacts in turn; each form should show only that contact's existing tags.
+7. Search for contacts and move between pagination pages. Expected: each visible row has the correct tag badges after live search and page changes. Reload the page; expected badges still match the database.
+8. Rename a connected tag on the **Tagovi** page and reload Contacts. Expected: its badge uses the new name. Delete that tag; expected: only that badge/link disappears and the contact plus its other tags remain.
+9. With two users, try selecting the other user's tag by submitting its ID in `tag_ids[]`. Expected: the POST is rejected with a clear message, and neither the contact nor any of its associations changes. A non-existent ID must have the same no-partial-save result.
+10. Submit the same valid tag ID more than once in `tag_ids[]`. Expected: it is stored as one association. Submit a scalar instead of an array, a non-integer, zero, or a negative ID. Expected: the request is rejected without saving any contact or association changes.
+11. Generate dummy contacts with the existing generator. Expected: generated contacts have no tag associations. Confirm ordinary contact create, edit, and delete still work.
+
+### V4.1.3 local verification record (2026-10-07)
+
+**Executed against local test data:** the configured database and app URL were confirmed to target loopback and the local `address_book` database (MySQL 8.0.46). A temporary PHP server was used; production was not contacted.
+
+- Create POST with no tags and with multiple tags passed. Repeated tag IDs produced one association.
+- Edit POST replaced the association set; an empty selection removed all links and kept the contact.
+- Create/edit POSTs with a foreign or nonexistent tag were rejected. The create did not add a contact; rejected edits left the contact fields and existing links unchanged.
+- A valid session without a CSRF token and a valid session with an invalid token were rejected without data changes.
+- A failing association insert in a transaction rolled back the preceding contact insert.
+- A contact validation error preserved the submitted values and selected tag in the reopened form. Separate edit GETs showed each contact's own selection.
+- Live-search JSON returned the grouped tag list for matching contacts. The dummy generator created a contact without tag links.
+- Temporary test accounts, cities, contacts, tags, association rows, and session files were removed. A follow-up query found zero `v413-…@example.invalid` test accounts; both local PHP servers were stopped.
+
+**Still requiring browser verification:** visually inspect badges in the initial table and after live search and page changes (including a page beyond page 1); verify create-form tag selection resets after Cancel/close; confirm the full contact create/edit/delete UX and tag badge updates after rename/delete. The DOM close behavior and responsive layout were not automated in a browser.

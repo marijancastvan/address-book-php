@@ -15,7 +15,7 @@
             <p class="message message-info">Nemate nijedan grad. Kontakt možete dodati kada kreirate svoj grad.</p>
         <?php endif; ?>
 
-        <form class="contact-form" method="post" action="<?= escapeHtml($formAction) ?>" novalidate data-validate-form data-pending-submit>
+        <form class="contact-form" data-contact-form-prefix="<?= escapeHtml($formIdPrefix) ?>" method="post" action="<?= escapeHtml($formAction) ?>" novalidate data-validate-form data-pending-submit>
             <input type="hidden" name="csrf_token" value="<?= escapeHtml(csrfToken()) ?>">
             <?php if (isset($contactId)): ?>
                 <input type="hidden" name="contact_id" value="<?= (int) $contactId ?>">
@@ -73,23 +73,23 @@
             <?php endif; ?>
 
             <?php $tagError = $errors['tag_ids'] ?? ''; ?>
-            <fieldset class="contact-tag-fieldset" aria-describedby="<?= escapeHtml($formIdPrefix) ?>-tag_ids-error">
-                <legend>Tagovi <span>(opciono)</span></legend>
-                <?php if ($availableTags === []): ?>
-                    <p class="contact-tags-empty">Nemate tagove. <a href="<?= escapeHtml($baseUrl) ?>/tags.php">Upravljajte tagovima</a>.</p>
-                <?php else: ?>
-                    <div class="contact-tag-options">
+            <div class="contact-tags-section">
+                <fieldset class="contact-tag-fieldset" aria-describedby="<?= escapeHtml($formIdPrefix) ?>-tag_ids-error">
+                    <legend>Tagovi <span>(opciono)</span></legend>
+                    <p class="contact-tags-empty" data-contact-tags-empty <?= $availableTags !== [] ? 'hidden' : '' ?>>Nemate tagove.</p>
+                    <div class="contact-tag-options" data-contact-tag-options>
                         <?php foreach ($availableTags as $tag): ?>
                             <?php $tagId = (int) $tag['id']; $tagInputId = $formIdPrefix . '-tag-' . $tagId; ?>
-                            <label class="contact-tag-option" for="<?= escapeHtml($tagInputId) ?>">
+                            <label class="contact-tag-option" for="<?= escapeHtml($tagInputId) ?>" data-contact-tag-name="<?= escapeHtml((string) $tag['name']) ?>">
                                 <input id="<?= escapeHtml($tagInputId) ?>" type="checkbox" name="tag_ids[]" value="<?= $tagId ?>" <?= in_array($tagId, $selectedTagIds, true) ? 'checked' : '' ?>>
                                 <span><?= escapeHtml((string) $tag['name']) ?></span>
                             </label>
                         <?php endforeach; ?>
                     </div>
-                <?php endif; ?>
-                <p class="field-error contact-tag-error" id="<?= escapeHtml($formIdPrefix) ?>-tag_ids-error" <?= $tagError === '' ? 'hidden' : '' ?>><?= escapeHtml((string) $tagError) ?></p>
-            </fieldset>
+                    <p class="field-error contact-tag-error" id="<?= escapeHtml($formIdPrefix) ?>-tag_ids-error" <?= $tagError === '' ? 'hidden' : '' ?>><?= escapeHtml((string) $tagError) ?></p>
+                </fieldset>
+                <button class="button button-tag-create" type="button" data-dialog-open="contact-tag-create-dialog" data-tag-create-open>Dodaj tag</button>
+            </div>
 
             <div class="form-actions">
                 <button class="button button-primary" type="submit" data-pending-label="Čuvanje...">Sačuvaj</button>

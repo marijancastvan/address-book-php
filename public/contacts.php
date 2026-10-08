@@ -277,6 +277,7 @@ $baseUrl = rtrim($config['app']['base_url'], '/');
     <script src="<?= escapeHtml($baseUrl) ?>/assets/js/form-ui.js" defer></script>
     <script src="<?= escapeHtml($baseUrl) ?>/assets/js/contacts.js" defer></script>
     <script src="<?= escapeHtml($baseUrl) ?>/assets/js/contact-city-create.js" defer></script>
+    <script src="<?= escapeHtml($baseUrl) ?>/assets/js/contact-tag-create.js" defer></script>
     <script src="<?= escapeHtml($baseUrl) ?>/assets/js/form-submit-state.js" defer></script>
     <script src="<?= escapeHtml($baseUrl) ?>/assets/js/contact-generator.js" defer></script>
 </head>
@@ -504,6 +505,26 @@ $baseUrl = rtrim($config['app']['base_url'], '/');
                 <button class="button button-secondary" type="button" data-dialog-close>Otkaži</button>
                 <button class="button button-primary" type="button" data-city-create-confirm>Dodaj mesto</button>
             </div>
+        </section>
+    </dialog>
+    <dialog class="app-dialog contact-tag-create-dialog" id="contact-tag-create-dialog" aria-labelledby="contact-tag-create-title" data-contact-tag-create-dialog>
+        <section class="dialog-panel">
+            <header class="dialog-header">
+                <div><p class="eyebrow">TAGOVI</p><h2 id="contact-tag-create-title">Dodaj tag</h2></div>
+                <button class="dialog-close" type="button" data-dialog-close aria-label="Zatvori dijalog">&times;</button>
+            </header>
+            <p class="message message-error" id="contact-tag-create-error" data-tag-create-error role="alert" hidden></p>
+            <form method="post" action="<?= escapeHtml($baseUrl) ?>/tag-create.php?format=json" data-tag-create-form novalidate>
+                <input type="hidden" name="csrf_token" value="<?= escapeHtml(csrfToken()) ?>">
+                <div class="field-group">
+                    <label for="contact-tag-create-name">Naziv taga</label>
+                    <input id="contact-tag-create-name" name="name" type="text" required autocomplete="off" aria-describedby="contact-tag-create-error" autofocus>
+                </div>
+                <div class="form-actions">
+                    <button class="button button-tag-create" type="submit" data-tag-create-submit>Dodaj tag</button>
+                    <button class="button button-secondary" type="button" data-dialog-close data-tag-create-cancel>Otkaži</button>
+                </div>
+            </form>
         </section>
     </dialog>
 </body>

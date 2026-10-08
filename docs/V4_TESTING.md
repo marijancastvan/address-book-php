@@ -148,3 +148,15 @@ Operacije koje mogu promeniti istorijske snapshot-e prvo zaključavaju red koris
 1. Prijavite se i otvorite Dashboard. Kartica **Tagovi** treba da prikazuje samo naslov „Tagovi“ i tekst „Upravljajte svojim tagovima“, bez broja tagova.
 2. Kliknite karticu i potvrdite da otvara postojeću stranicu `tags.php`.
 3. Proverite desktop, tablet i telefon: tri kartice su u tri kolone na širokom ekranu, dve na srednjem, a jedna u koloni na užem ekranu; kartica Tagovi zadržava ljubičastu paletu, a kartice Kontakti i Gradovi zadržavaju izgled i linkove.
+
+## V4.4.2 — Kreiranje taga iz kontakt forme
+
+1. Otvorite Dodaj kontakt, unesite vrednosti u kontakt polja i izaberite grad. Kada nalog još nema tagove, kliknite **Dodaj tag**, napravite prvi tag i proverite da se opcija pojavi i označi bez zatvaranja ili gubitka unosa kontakt forme.
+2. Sa postojećim tagovima izaberite jedan ili više tagova, otvorite dijalog taga i kreirajte još jedan. Proverite da se postojeći izbor sačuva, novi tag se označi samo u formi iz koje je kreiranje pokrenuto, a obe otvorene kontakt forme dobiju sortiranu novu opciju.
+3. Ponovite tok iz Izmeni kontakt. Sačuvajte kontakt i proverite da su tag veze tačne, a V4.3 istorija sadrži promenu tagova samo ako se skup izabranih tagova zaista promenio.
+4. Probajte naziv koji već postoji (uključujući promenu velikih/malih slova), prazan naziv i naziv sa 151 Unicode code point-om. Očekujte jasnu grešku u tag dijalogu; kontakt forma i njeni podaci/izbori ostaju otvoreni i nepromenjeni. Ispravite naziv i ponovite zahtev.
+5. Za neuspešan mrežni/server zahtev proverite da se poruka prikaže u tag dijalogu, dugme ponovo omogući i ponovni pokušaj radi. Tokom zahteva brzo kliknite Dodaj više puta: sme biti poslat samo jedan zahtev.
+6. Otvorite dijalog taga pa ga zatvorite preko Otkaži, X i Escape. Svaki put treba da se zatvori samo tag dijalog; kontakt forma, njena polja i prethodni tag izbor ostaju sačuvani.
+7. Kreirajte tag, zatim otkažite kontakt formu. Tag treba da ostane na stranici Tagovi, bez kontakt veze i bez novog događaja u istoriji kontakta.
+8. Sačuvajte kontakt nakon uspešnog kreiranja taga. Proverite vezu u prikazu kontakta i odgovarajući događaj istorije ako je tag izbor izmenjen.
+9. Proverite izolaciju sa dva korisnika: svaki vidi i može inline da kreira samo svoje tagove. Pozovite `tag-create.php?format=json` bez CSRF tokena ili sa pogrešnim tokenom: očekujte HTTP 403 i bez promene baze. Request `user_id` se ignoriše; vlasnik je sesija.

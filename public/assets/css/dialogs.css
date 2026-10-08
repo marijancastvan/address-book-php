@@ -16,6 +16,27 @@ dialog.app-dialog {
     box-shadow: 0 24px 80px rgb(15 23 42 / 28%);
 }
 
+dialog.contact-tag-create-dialog {
+    width: min(92vw, 420px);
+    max-width: 420px;
+}
+
+dialog.contact-tag-create-dialog [data-tag-create-form] {
+    display: grid;
+    min-width: 0;
+    gap: 16px;
+}
+
+dialog.contact-tag-create-dialog [data-tag-create-form] .form-actions {
+    min-width: 0;
+    justify-content: flex-end;
+}
+
+dialog.contact-tag-create-dialog [data-tag-create-form] .form-actions > .button {
+    max-width: 100%;
+    white-space: normal;
+}
+
 dialog.app-dialog::backdrop {
     background: rgb(15 23 42 / 58%);
     backdrop-filter: blur(2px);

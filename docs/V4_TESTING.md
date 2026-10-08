@@ -78,3 +78,7 @@ Use a signed-in account with at least one city. The contact forms submit to `con
 - Temporary test accounts, cities, contacts, tags, association rows, and session files were removed. A follow-up query found zero `v413-…@example.invalid` test accounts; both local PHP servers were stopped.
 
 **Still requiring browser verification:** visually inspect badges in the initial table and after live search and page changes (including a page beyond page 1); verify create-form tag selection resets after Cancel/close; confirm the full contact create/edit/delete UX and tag badge updates after rename/delete. The DOM close behavior and responsive layout were not automated in a browser.
+
+## Contact ordering check
+
+Create enough contacts to span at least two pages, including `aAna aaa`, `Petar 1123`, and multiple contacts with the same first name but different last names. Confirm the list starts in case-insensitive ascending first-name order, then sorts matching first names by last name, with a stable order for exact name ties. Check the boundary between pages, repeat with a live-search query, and confirm the same order is retained in the JSON results and pagination. The first page should contain the first 25 results; later pages must continue the full sorted sequence without duplicates or omissions.

@@ -59,7 +59,7 @@ try {
                    contacts.email, contacts.city_id, cities.name AS city_name
             FROM contacts
             INNER JOIN cities ON cities.id = contacts.city_id' . $whereSql . '
-            ORDER BY contacts.last_name, contacts.first_name
+            ORDER BY contacts.first_name ASC, contacts.last_name ASC, contacts.id ASC
             LIMIT :limit OFFSET :offset';
     $statement = $pdo->prepare($sql);
     $statement->bindValue(':user_id', (int) $userId, PDO::PARAM_INT);

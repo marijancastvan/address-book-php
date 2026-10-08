@@ -5,6 +5,7 @@
     const results = document.getElementById('contact-results');
     const status = document.getElementById('contact-search-status');
     const pagination = document.getElementById('contacts-pagination');
+    const filterNames = ['search', 'city_id', 'tag_id', 'date_from', 'date_to'];
 
     if (!form || !input || !results) return;
 
@@ -20,6 +21,33 @@
     let requestVersion = 0;
     let activeController = null;
 
+    const readFilters = () => Object.fromEntries(filterNames.map((name) => {
+        const control = form.elements.namedItem(name);
+        return [name, control?.value?.trim() ?? ''];
+    }));
+
+    const filtersFromUrl = (url) => Object.fromEntries(filterNames.map((name) => [
+        name,
+        url.searchParams.get(name) ?? '',
+    ]));
+
+    const setFormFilters = (filters) => {
+        for (const name of filterNames) {
+            const control = form.elements.namedItem(name);
+            if (control) control.value = filters[name] ?? '';
+        }
+    };
+
+    const buildPageUrl = (page, filters, extra = {}) => {
+        const params = new URLSearchParams();
+        for (const name of filterNames) {
+            if (filters[name] !== '') params.set(name, filters[name]);
+        }
+        params.set('page', String(page));
+        for (const [name, value] of Object.entries(extra)) params.set(name, value);
+        return `${appBase}/contacts.php?${params.toString()}`;
+    };
+
     const createCell = (tag, label, value) => {
         const cell = document.createElement(tag);
         cell.dataset.label = label;
@@ -27,26 +55,21 @@
         return cell;
     };
 
-    const buildPageUrl = (page, term, extra = {}) => {
-        const params = new URLSearchParams({ page: String(page), ...extra });
-        if (term !== '') params.set('search', term);
-        return `${appBase}/contacts.php?${params.toString()}`;
-    };
-
-    const createPaginationLink = (label, page, term, options = {}) => {
+    const createPaginationLink = (label, page, filters, options = {}) => {
         const link = document.createElement('a');
         link.className = 'pagination-link';
         link.textContent = label;
-        link.href = buildPageUrl(page, term);
+        link.href = buildPageUrl(page, filters);
         if (options.current) {
             link.classList.add('is-current');
             link.setAttribute('aria-current', 'page');
         }
         if (options.rel) link.rel = options.rel;
+        link.dataset.page = String(page);
         return link;
     };
 
-    const renderPagination = (metadata, term) => {
+    const renderPagination = (metadata, filters) => {
         if (!pagination) return;
 
         const currentPage = Number(metadata.current_page) || 1;
@@ -56,7 +79,7 @@
         if (pagination.hidden) return;
 
         if (currentPage > 1) {
-            pagination.append(createPaginationLink('Prethodna', currentPage - 1, term, { rel: 'prev' }));
+            pagination.append(createPaginationLink('Prethodna', currentPage - 1, filters, { rel: 'prev' }));
         } else {
             const previous = document.createElement('span');
             previous.className = 'pagination-link is-disabled';
@@ -76,21 +99,21 @@
         };
 
         if (startPage > 1) {
-            pagination.append(createPaginationLink('1', 1, term));
+            pagination.append(createPaginationLink('1', 1, filters));
             if (startPage > 2) appendEllipsis();
         }
         for (let page = startPage; page <= endPage; page += 1) {
-            pagination.append(createPaginationLink(String(page), page, term, {
+            pagination.append(createPaginationLink(String(page), page, filters, {
                 current: page === currentPage,
             }));
         }
         if (endPage < totalPages) {
             if (endPage < totalPages - 1) appendEllipsis();
-            pagination.append(createPaginationLink(String(totalPages), totalPages, term));
+            pagination.append(createPaginationLink(String(totalPages), totalPages, filters));
         }
 
         if (currentPage < totalPages) {
-            pagination.append(createPaginationLink('Sledeća', currentPage + 1, term, { rel: 'next' }));
+            pagination.append(createPaginationLink('Sledeća', currentPage + 1, filters, { rel: 'next' }));
         } else {
             const next = document.createElement('span');
             next.className = 'pagination-link is-disabled';
@@ -100,16 +123,17 @@
         }
     };
 
-    const renderContacts = (contacts, metadata, term) => {
+    const renderContacts = (contacts, metadata, filters) => {
         results.replaceChildren();
-        renderPagination(metadata, term);
+        renderPagination(metadata, filters);
 
         if (contacts.length === 0) {
             const emptyState = document.createElement('section');
             emptyState.className = 'empty-state';
             const heading = document.createElement('h2');
             const message = document.createElement('p');
-            if (input.value.trim() === '') {
+            const hasFilters = filterNames.some((name) => filters[name] !== '');
+            if (!hasFilters) {
                 heading.textContent = 'Još nema kontakata';
                 message.textContent = 'Trenutno nemate nijedan kontakt.';
                 const addButton = document.createElement('button');
@@ -120,7 +144,7 @@
                 emptyState.append(heading, message, addButton);
             } else {
                 heading.textContent = 'Nema rezultata';
-                message.textContent = 'Nema kontakata koji odgovaraju pretrazi.';
+                message.textContent = 'Nema kontakata koji odgovaraju izabranim kriterijumima.';
                 emptyState.append(heading, message);
             }
             results.append(emptyState);
@@ -177,7 +201,7 @@
             const edit = document.createElement('a');
             edit.className = 'button button-small button-secondary';
             edit.textContent = 'Izmeni';
-            edit.href = buildPageUrl(metadata.current_page, term, { edit_id: String(contact.id) });
+            edit.href = buildPageUrl(metadata.current_page, filters, { edit_id: String(contact.id) });
 
             const remove = document.createElement('button');
             remove.className = 'button button-small button-danger';
@@ -198,14 +222,19 @@
         results.append(wrapper);
     };
 
-    const fetchContacts = async (term, page, version) => {
+    const fetchContacts = async (filters, page, version) => {
         const controller = new AbortController();
         activeController = controller;
         results.setAttribute('aria-busy', 'true');
-        status.textContent = 'Pretraga...';
+        status.textContent = 'Učitavanje kontakata…';
         status.dataset.state = 'loading';
 
-        const query = new URLSearchParams({ search: term, page: String(page), format: 'json' });
+        const query = new URLSearchParams();
+        for (const name of filterNames) {
+            if (filters[name] !== '') query.set(name, filters[name]);
+        }
+        query.set('page', String(page));
+        query.set('format', 'json');
 
         try {
             const response = await fetch(`${appBase}/contacts.php?${query.toString()}`, {
@@ -217,19 +246,21 @@
             const payload = await response.json();
 
             if (version !== requestVersion) return;
-            if (!response.ok || !Array.isArray(payload.contacts) || !payload.pagination) {
-                throw new Error(payload.error || 'Live pretraga nije uspela.');
+            if (!response.ok) {
+                const message = typeof payload.error === 'string' ? payload.error : payload.error?.message;
+                throw new Error(message || 'Filtriranje kontakata nije uspelo.');
+            }
+            if (!Array.isArray(payload.contacts) || !payload.pagination) {
+                throw new Error('Odgovor servera nije ispravan. Pokušajte ponovo.');
             }
 
-            renderContacts(payload.contacts, payload.pagination, term);
+            renderContacts(payload.contacts, payload.pagination, filters);
+            history.replaceState({}, '', buildPageUrl(payload.pagination.current_page, filters));
             status.textContent = '';
             status.removeAttribute('data-state');
         } catch (error) {
             if (error.name === 'AbortError' || version !== requestVersion) return;
-            results.replaceChildren();
-            pagination?.replaceChildren();
-            if (pagination) pagination.hidden = true;
-            status.textContent = 'Pretraga trenutno nije dostupna. Pokušajte ponovo.';
+            status.textContent = error.message || 'Pretraga trenutno nije dostupna. Pokušajte ponovo.';
             status.dataset.state = 'error';
         } finally {
             if (version === requestVersion) {
@@ -239,18 +270,38 @@
         }
     };
 
-    const startSearch = (delay) => {
+    const request = (filters, page, delay, historyMode = 'push') => {
         window.clearTimeout(debounceTimer);
         const version = ++requestVersion;
         activeController?.abort();
-        const term = input.value.trim();
-
-        debounceTimer = window.setTimeout(() => fetchContacts(term, 1, version), delay);
+        const destination = buildPageUrl(page, filters);
+        if (destination !== `${window.location.pathname}${window.location.search}`) {
+            history[`${historyMode}State`]({}, '', destination);
+        }
+        debounceTimer = window.setTimeout(() => fetchContacts(filters, page, version), delay);
     };
 
-    input.addEventListener('input', () => startSearch(250));
+    form.addEventListener('input', (event) => {
+        if (event.target === input) request(readFilters(), 1, 250);
+    });
+    form.addEventListener('change', (event) => {
+        if (event.target !== input) request(readFilters(), 1, 0);
+    });
     form.addEventListener('submit', (event) => {
         event.preventDefault();
-        startSearch(0);
+        request(readFilters(), 1, 0);
+    });
+    pagination?.addEventListener('click', (event) => {
+        const link = event.target.closest('a[data-page]');
+        if (!link) return;
+        event.preventDefault();
+        request(readFilters(), Number(link.dataset.page) || 1, 0);
+    });
+
+    window.addEventListener('popstate', () => {
+        const url = new URL(window.location.href);
+        const filters = filtersFromUrl(url);
+        setFormFilters(filters);
+        request(filters, Number(url.searchParams.get('page')) || 1, 0, 'replace');
     });
 })();

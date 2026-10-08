@@ -1,7 +1,6 @@
 .contact-search {
-    display: flex;
-    align-items: end;
-    gap: 12px;
+    display: grid;
+    gap: 14px;
     margin-bottom: 20px;
     padding: 16px;
     border: 1px solid #d8e2f0;
@@ -11,12 +10,43 @@
 }
 
 .contact-search .search-field {
-    flex-basis: 100%;
+    min-width: 0;
 }
 
 .contact-search .search-field input {
     min-height: 48px;
     border-color: #c3d0e2;
+}
+
+.contact-filter-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 12px;
+}
+
+.contact-filter-grid .field-group {
+    min-width: 0;
+}
+
+.contact-filter-grid label {
+    display: block;
+    margin-bottom: 6px;
+    color: #354e76;
+    font-size: 13px;
+    font-weight: 650;
+}
+
+.contact-filter-grid input,
+.contact-filter-grid select {
+    width: 100%;
+    min-width: 0;
+    min-height: 44px;
+}
+
+.contact-filter-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 9px;
 }
 
 .main-content:has(.contact-search) .page-header .eyebrow {
@@ -267,13 +297,22 @@ a.pagination-link:hover {
 
 @media (max-width: 680px) {
     .contact-search {
-        align-items: stretch;
         padding: 13px;
+    }
+
+    .contact-filter-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 
     .contacts-header-actions {
         width: 100%;
         flex-direction: column;
         align-items: stretch;
+    }
+}
+
+@media (max-width: 420px) {
+    .contact-filter-grid {
+        grid-template-columns: minmax(0, 1fr);
     }
 }

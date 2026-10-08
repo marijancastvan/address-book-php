@@ -19,7 +19,14 @@ $returnPageInput = filter_var($_GET['page'] ?? $_POST['page'] ?? 1, FILTER_VALID
 $returnPage = is_int($returnPageInput) && $returnPageInput > 0 ? $returnPageInput : 1;
 $returnSearchInput = $_GET['search'] ?? $_POST['search'] ?? '';
 $returnSearch = is_scalar($returnSearchInput) ? trim((string) $returnSearchInput) : '';
-$returnContext = ['search' => $returnSearch, 'page' => $returnPage];
+$returnContext = [
+    'search' => $returnSearch,
+    'city_id' => is_scalar($_GET['city_id'] ?? $_POST['city_id'] ?? '') ? (string) ($_GET['city_id'] ?? $_POST['city_id'] ?? '') : '',
+    'tag_id' => is_scalar($_GET['tag_id'] ?? $_POST['tag_id'] ?? '') ? (string) ($_GET['tag_id'] ?? $_POST['tag_id'] ?? '') : '',
+    'date_from' => is_scalar($_GET['date_from'] ?? $_POST['date_from'] ?? '') ? (string) ($_GET['date_from'] ?? $_POST['date_from'] ?? '') : '',
+    'date_to' => is_scalar($_GET['date_to'] ?? $_POST['date_to'] ?? '') ? (string) ($_GET['date_to'] ?? $_POST['date_to'] ?? '') : '',
+    'page' => $returnPage,
+];
 if (($_SERVER['REQUEST_METHOD'] ?? '') !== 'POST') {
     redirectTo('/contacts.php?' . http_build_query(['edit_id' => $contactId] + $returnContext));
 }

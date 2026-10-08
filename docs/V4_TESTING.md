@@ -82,3 +82,31 @@ Use a signed-in account with at least one city. The contact forms submit to `con
 ## Contact ordering check
 
 Create enough contacts to span at least two pages, including `aAna aaa`, `Petar 1123`, and multiple contacts with the same first name but different last names. Confirm the list starts in case-insensitive ascending first-name order, then sorts matching first names by last name, with a stable order for exact name ties. Check the boundary between pages, repeat with a live-search query, and confirm the same order is retained in the JSON results and pagination. The first page should contain the first 25 results; later pages must continue the full sorted sequence without duplicates or omissions.
+
+## V4.2 — Combined contact filters
+
+Use only a local database. Before inserting test contacts, confirm `SELECT DATABASE(), @@session.time_zone, @@global.time_zone, @@system_time_zone, NOW(), UTC_TIMESTAMP();`. Create two local test accounts, two cities and two tags for the first account, plus a city and tag for the second account. For the first account, create at least 30 contacts named `Alpha 001` through `Alpha 030` in City A, tagged with `Filter A`, and dated on `2026-05-10`; assign both tags to at least one contact. Add contacts at `2026-05-09 23:59:59`, `2026-05-10 00:00:00`, `2026-05-10 23:59:59`, and `2026-05-11 00:00:00`. Put additional control contacts in City B, with Filter B, and with a different creation date. Keep a record of all test IDs and remove only those rows after testing.
+
+`contacts.created_at` is a MySQL `TIMESTAMP` with `DEFAULT CURRENT_TIMESTAMP`. The application does not set a connection timezone; MySQL interprets and displays this column in each connection's session timezone. Date filters therefore use midnight in the MySQL session timezone as the inclusive lower boundary and midnight after the selected end date as the exclusive upper boundary. They do not assume stored values are UTC and do not call `DATE(created_at)`. On the local environment checked for V4.2, PHP reported `UTC`, while MySQL reported session/global `SYSTEM`, system zone `Central Europe Daylight Time`, and a current offset of `+02:00`. Verify these values on hosting with the SQL above; hosting timezone was not accessible during implementation. A date-only value is a calendar date and is not converted through PHP's timezone.
+
+1. Test the text, city, tag, start date and end date separately. Confirm each limits only the signed-in user's contacts. Combine all five controls and confirm the result satisfies every non-empty filter; the four non-text filters combine with the grouped text-search OR conditions using AND.
+2. Confirm the contact assigned both tags appears once when filtering by either tag. Verify the total count and page count do not duplicate it.
+3. With `Alpha` + City A + Filter A + `2026-05-10` active, confirm 30 results, 25 on page 1 and 5 on page 2. Confirm the sort remains `first_name ASC, last_name ASC, id ASC`, filters remain in the URL across pages, and HTML rows and `format=json` return identical contact IDs in the same order.
+4. Test only `date_from=2026-05-10`: contacts at the start of that date and later are included, but the previous day's `23:59:59` is excluded. Test only `date_to=2026-05-10`: the selected day's `23:59:59` is included and the next day's `00:00:00` is excluded. Test both dates equal to `2026-05-10` for the same complete-day boundaries.
+5. For deterministic boundary setup, set values on isolated test rows using the database session timezone:
+
+   ```sql
+   UPDATE contacts SET created_at = '2026-05-09 23:59:59' WHERE id = <local_test_contact_id>;
+   UPDATE contacts SET created_at = '2026-05-10 00:00:00' WHERE id = <local_test_contact_id>;
+   UPDATE contacts SET created_at = '2026-05-10 23:59:59' WHERE id = <local_test_contact_id>;
+   UPDATE contacts SET created_at = '2026-05-11 00:00:00' WHERE id = <local_test_contact_id>;
+   ```
+
+   Run one statement per test row and replace the placeholder only with an isolated local test ID. Do not run these updates on production data.
+6. Submit malformed dates such as `2026-02-30`, a non-`YYYY-MM-DD` value and a reversed range. Expected: HTML shows a validation message; JSON returns HTTP 400 with an `error` object containing `code`, `message` and field details. A foreign or missing `city_id`/`tag_id` must also return a readable validation error, not an empty successful result. Try an account B ID while signed in as account A.
+7. Search for a unique nonexistent phrase. Expected: a clear empty-results state, zero results and no pagination. Confirm the filters still work using the ordinary GET form with JavaScript disabled.
+8. From page 2, edit one matching contact so that it no longer matches the active text filter. Save it. Expected: the redirect retains every filter and page context, the updated row disappears from the filtered results, and no false “contact not found” message appears. Trigger a validation error in edit and confirm the same filters remain in the return URL.
+9. Use browser Back and Forward after changing filters and pages. Expected: controls, results and URL return to the corresponding state. Change a filter while on a later page; expected: results restart at page 1.
+10. Remove the isolated contacts, tags, cities and accounts after the checks.
+
+For production-like scale, apply `app/database/migrations/004_add_contact_created_at_filter_index.sql` manually after reviewing it. It adds `(user_id, created_at)` so the owner equality and date range can use one index. Do not run it automatically as part of a page request.

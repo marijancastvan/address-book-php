@@ -21,6 +21,35 @@ function contactCharacterLength(string $value): int
     return $count === false ? 0 : $count;
 }
 
+/** Validate a date-only filter without applying PHP's configured timezone. */
+function validateContactDateFilter(mixed $value): array
+{
+    if ($value === null || $value === '') {
+        return ['value' => null, 'error' => null];
+    }
+
+    if (!is_string($value) || preg_match('/\A\d{4}-\d{2}-\d{2}\z/D', $value) !== 1) {
+        return ['value' => null, 'error' => 'Datum mora biti u formatu YYYY-MM-DD.'];
+    }
+
+    [$year, $month, $day] = array_map('intval', explode('-', $value));
+    if (!checkdate($month, $day, $year)) {
+        return ['value' => null, 'error' => 'Unesite postojeći datum.'];
+    }
+
+    return ['value' => $value, 'error' => null];
+}
+
+function nextContactDateBoundary(string $date): string
+{
+    $utcDate = DateTimeImmutable::createFromFormat('!Y-m-d', $date, new DateTimeZone('UTC'));
+    if (!$utcDate instanceof DateTimeImmutable || $date === '9999-12-31') {
+        throw new InvalidArgumentException('Date boundary is outside the supported calendar range.');
+    }
+
+    return $utcDate->modify('+1 day')->format('Y-m-d') . ' 00:00:00';
+}
+
 function validateContactValues(array $values): array
 {
     $errors = [];

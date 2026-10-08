@@ -142,3 +142,9 @@ Operacije koje mogu promeniti istorijske snapshot-e prvo zaključavaju red koris
 
 - Izvršeno na privremenoj lokalnoj MySQL bazi: migracije 001–005 su primenjene; preimenovanje/brisanje taga i preimenovanje grada za po dva kontakta proizveli su po jedan događaj za svaki kontakt; tag linkovi su uklonjeni bez brisanja kontakata. Provereno je i da upit ograničen drugim korisnikom ne vidi te događaje. Privremena baza je uklonjena.
 - Preostaje ručno proveriti browser tokove i forme iz gore navedenih koraka, posebno contact edit rollback pri namerno neuspešnom upisu istorije, CSRF i istorijsku paginaciju. Browser provera nije izvršena.
+
+## V4.4.1 — Tagovi na Dashboard-u
+
+1. Prijavite se i otvorite Dashboard. Kartica **Tagovi** treba da prikazuje samo naslov „Tagovi“ i tekst „Upravljajte svojim tagovima“, bez broja tagova.
+2. Kliknite karticu i potvrdite da otvara postojeću stranicu `tags.php`.
+3. Proverite desktop, tablet i telefon: tri kartice su u tri kolone na širokom ekranu, dve na srednjem, a jedna u koloni na užem ekranu; kartica Tagovi zadržava ljubičastu paletu, a kartice Kontakti i Gradovi zadržavaju izgled i linkove.

@@ -73,6 +73,11 @@ $baseUrl = rtrim($config['app']['base_url'], '/');
                         <h2>Gradovi</h2>
                         <p>Upravljajte svojim gradovima.</p>
                     </a>
+                    <a class="feature-card feature-card-link" href="<?= escapeHtml($baseUrl) ?>/tags.php">
+                        <p class="eyebrow">OZNAKE</p>
+                        <h2>Tagovi</h2>
+                        <p>Upravljajte svojim tagovima.</p>
+                    </a>
                 </section>
             </div>
         </main>

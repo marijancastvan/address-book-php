@@ -1,0 +1,26 @@
+.contact-history-page { display: grid; align-content: start; grid-auto-rows: max-content; gap: .75rem; }
+.history-back-link { display: inline-flex; width: fit-content; max-width: 100%; flex: none; align-self: start; justify-self: start; border-color: #1a2b56; background: #1a2b56; color: #fff; text-decoration: none; }
+.history-back-link:hover { border-color: #111d3c; background: #111d3c; color: #fff; }
+.history-back-link:focus-visible { outline: 3px solid #60a5fa; outline-offset: 2px; }
+.history-title-panel { align-self: start; min-height: 0; height: auto; border: 1px solid #e0e4e8; border-radius: 1rem; background: #f3f5f7; padding: .875rem 1.25rem; }
+.history-title-panel .eyebrow { color: #64748b; }
+.history-title-panel h1 { margin-bottom: 0; }
+.history-empty-state { display: flex; min-height: 9rem; box-sizing: border-box; align-items: center; justify-content: center; padding: 1.25rem; }
+.history-empty-state p { margin: 0; }
+.history-event { border: 1px solid #d7e0eb; border-radius: 1rem; background: #fff; padding: clamp(1rem, 3vw, 1.5rem); box-shadow: 0 8px 24px rgb(20 41 67 / 7%); }
+.contact-history-page h1, .contact-history-page h2 { color: #183451; }
+.history-list { display: grid; gap: 1rem; list-style: none; margin: 0; padding: 0; }
+.history-event > header { display: flex; align-items: baseline; justify-content: space-between; gap: 1rem; flex-wrap: wrap; }
+.history-event h2 { margin: 0; font-size: 1.1rem; }
+.history-event-meta { display: flex; flex-wrap: wrap; gap: .35rem 1rem; margin: 0; color: #53677d; overflow-wrap: anywhere; }
+.history-event dl { display: grid; gap: .75rem; margin: 1rem 0 0; }
+.history-event dl > div { display: grid; grid-template-columns: minmax(7rem, .3fr) 1fr; gap: .75rem; border-top: 1px solid #e6edf4; padding-top: .75rem; }
+.history-event dt { color: #435a70; font-weight: 700; }
+.history-event dd { margin: 0; overflow-wrap: anywhere; }
+.history-event dd span, .history-event dd strong { white-space: pre-wrap; }
+.history-old-value, .history-new-value { display: inline-block; max-width: 100%; border-radius: .45rem; padding: .3rem .55rem; }
+.history-old-value { border: 1px solid #dce1e7; background: #f3f5f7; color: #526174; }
+.history-new-value { border: 1px solid #bfdbfe; background: #eff6ff; color: #1e40af; }
+.history-change-arrow { padding-inline: .35rem; color: #64748b; }
+.history-pagination { display: flex; flex-wrap: wrap; gap: .5rem; }
+@media (max-width: 560px) { .history-event dl > div { grid-template-columns: 1fr; gap: .25rem; } }

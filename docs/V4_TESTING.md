@@ -110,3 +110,35 @@ Use only a local database. Before inserting test contacts, confirm `SELECT DATAB
 10. Remove the isolated contacts, tags, cities and accounts after the checks.
 
 For production-like scale, apply `app/database/migrations/004_add_contact_created_at_filter_index.sql` manually after reviewing it. It adds `(user_id, created_at)` so the owner equality and date range can use one index. Do not run it automatically as part of a page request.
+# V4.3 — Istorija promena kontakta
+
+## Migracija
+
+Migracija `app/database/migrations/005_create_contact_history.sql` se ne pokreće automatski. Napravite backup, pa primenite je nad ciljnom bazom preko phpMyAdmin (Import) ili MySQL klijenta:
+
+```sh
+mysql -u USER -p DATABASE < app/database/migrations/005_create_contact_history.sql
+```
+
+Proverite da postoje `contact_history_events` i `contact_history_changes` i njihovi ključevi. Vremena događaja se zapisuju sa `UTC_TIMESTAMP()` i prikazuju sa oznakom UTC.
+
+## Funkcionalni testovi
+
+1. Izmenite ime, telefon, e-mail, grad i/ili tag kontakta. Stranica Istorija treba da prikaže samo stvarno promenjena polja sa starim i novim vrednostima, vremenom i email-om aktera.
+2. Sačuvajte kontakt bez promena: ne treba da nastane novi događaj. Dodajte, zamenite i uklonite tagove i proverite snapshot-e naziva i ID-jeva.
+3. Preimenujte tag povezan sa više kontakata: svaki pogođeni kontakt dobija događaj sa starim i novim skupom tagova. Obrišite tag: događaji pokazuju uklonjeni tag, kontakti ostaju.
+4. Preimenujte grad povezan sa više kontakata: svaki kontakt dobija staro i novo ime grada. Pokušaj brisanja grada povezanog sa kontaktom ostaje odbijen postojećim FK ograničenjem.
+5. Kreirajte kontakt ručno i preko generatora: ne nastaje istorijski događaj. Obrišite kontakt: njegov događaj i promene se uklanjaju kaskadno.
+6. Na listi sa aktivnom pretragom/filterima i stranom većom od 1 otvorite Istorija, pa Nazad na kontakte; filteri i broj strane treba da ostanu sačuvani. Testirajte istoriju sa preko 25 događaja i proverite najnoviji događaj prvi.
+7. Otvorite istoriju tuđeg ili nepostojećeg ID-ja: oba slučaja daju isti 404 odgovor bez prikaza podataka. Proverite escaping koristeći HTML specijalne znakove u nazivu taga/grada.
+8. Testirajte CSRF validaciju na kreiranju/izmeni kontakta, brisanju kontakta, izmeni/brisanja grada i taga; zahtevi bez tokena ili sa pogrešnim tokenom ne smeju menjati podatke.
+9. Za proveru atomicity-jaa izolovanoj bazi izazovite neuspeh upisa istorije tokom izmene, pa proverite da su i kontakt i njegove tag veze vraćeni na prethodno stanje.
+
+## Transakcije i lock redosled
+
+Operacije koje mogu promeniti istorijske snapshot-e prvo zaključavaju red korisnika, čime se izmene istog naloga serijalizuju. Zatim kontakt izmena/brisanje zaključava kontakt; preimenovanje/brisanje grada ili taga zaključava taj entitet i pogođene kontakte po rastućem ID-ju. Kontakt kreiranje i generator koriste isti lock korisnika pre provere gradova/tagova i insert-a. Istorijski događaj se upisuje u istoj transakciji kao promena. Nemojte primenjivati migraciju na produkciji pre pregleda i backup-a.
+
+## Rezultati verifikacije V4.3
+
+- Izvršeno na privremenoj lokalnoj MySQL bazi: migracije 001–005 su primenjene; preimenovanje/brisanje taga i preimenovanje grada za po dva kontakta proizveli su po jedan događaj za svaki kontakt; tag linkovi su uklonjeni bez brisanja kontakata. Provereno je i da upit ograničen drugim korisnikom ne vidi te događaje. Privremena baza je uklonjena.
+- Preostaje ručno proveriti browser tokove i forme iz gore navedenih koraka, posebno contact edit rollback pri namerno neuspešnom upisu istorije, CSRF i istorijsku paginaciju. Browser provera nije izvršena.

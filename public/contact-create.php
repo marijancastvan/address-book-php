@@ -6,6 +6,7 @@ require_once dirname(__DIR__) . '/app/bootstrap.php';
 require_once dirname(__DIR__) . '/app/auth.php';
 require_once dirname(__DIR__) . '/app/csrf.php';
 require_once dirname(__DIR__) . '/app/contact-helpers.php';
+require_once dirname(__DIR__) . '/app/history-helpers.php';
 
 if (!isAuthenticated()) {
     redirectTo('/login.php');
@@ -31,15 +32,18 @@ if (!isValidCsrfToken($_POST['csrf_token'] ?? null)) {
     try {
         $pdo = db();
         $cityId = filter_var($formValues['city_id'], FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
-        if ($cityId !== false && !cityBelongsToUser($pdo, $cityId, (int) $userId)) {
-            $errors['city_id'] = 'Izaberite grad koji pripada vašem nalogu.';
-        }
-        if ($submittedTags['error'] === null && !contactTagsBelongToUser($pdo, (int) $userId, $tagIds)) {
-            $errors['tag_ids'] = 'Jedan ili više izabranih tagova nisu dostupni na vašem nalogu.';
+        if ($errors === []) {
+            $pdo->beginTransaction();
+            lockUserForHistoryMutation($pdo, (int) $userId);
+            if ($cityId !== false && !cityBelongsToUser($pdo, $cityId, (int) $userId)) {
+                $errors['city_id'] = 'Izaberite grad koji pripada vašem nalogu.';
+            }
+            if ($submittedTags['error'] === null && !contactTagsBelongToUser($pdo, (int) $userId, $tagIds)) {
+                $errors['tag_ids'] = 'Jedan ili više izabranih tagova nisu dostupni na vašem nalogu.';
+            }
         }
 
         if ($errors === []) {
-            $pdo->beginTransaction();
             $statement = $pdo->prepare(
                 'INSERT INTO contacts (user_id, first_name, last_name, phone, email, city_id)
                  VALUES (:user_id, :first_name, :last_name, :phone, :email, :city_id)'
@@ -57,6 +61,7 @@ if (!isValidCsrfToken($_POST['csrf_token'] ?? null)) {
             $pdo->commit();
             redirectTo('/contacts.php?success=created');
         }
+        if ($pdo instanceof PDO && $pdo->inTransaction()) { $pdo->rollBack(); }
     } catch (Throwable $exception) {
         if ($pdo instanceof PDO && $pdo->inTransaction()) {
             $pdo->rollBack();

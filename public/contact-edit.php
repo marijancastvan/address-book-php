@@ -6,6 +6,7 @@ require_once dirname(__DIR__) . '/app/bootstrap.php';
 require_once dirname(__DIR__) . '/app/auth.php';
 require_once dirname(__DIR__) . '/app/csrf.php';
 require_once dirname(__DIR__) . '/app/contact-helpers.php';
+require_once dirname(__DIR__) . '/app/history-helpers.php';
 
 if (!isAuthenticated()) {
     redirectTo('/login.php');
@@ -42,13 +43,15 @@ if ($submittedTags['error'] !== null) {
 
 if (!isValidCsrfToken($_POST['csrf_token'] ?? null)) {
     $errors['_form'] = 'Forma je istekla ili nije validna. Osvežite stranicu i pokušajte ponovo.';
-} else {
+} elseif ($errors === []) {
     $pdo = null;
     try {
         $pdo = db();
-        $ownedContact = $pdo->prepare('SELECT id FROM contacts WHERE id = :contact_id AND user_id = :user_id LIMIT 1');
-        $ownedContact->execute(['contact_id' => $contactId, 'user_id' => $userId]);
-        if ($ownedContact->fetch() === false) {
+        $pdo->beginTransaction();
+        $actorEmail = lockUserForHistoryMutation($pdo, $userId);
+        $before = lockContactHistorySnapshot($pdo, $userId, $contactId);
+        if ($before === null) {
+            $pdo->rollBack();
             redirectTo('/contacts.php?' . http_build_query(['error' => 'not_found'] + $returnContext));
         }
 
@@ -61,7 +64,40 @@ if (!isValidCsrfToken($_POST['csrf_token'] ?? null)) {
         }
 
         if ($errors === []) {
-            $pdo->beginTransaction();
+            $cityStatement = $pdo->prepare(
+                'SELECT id, name FROM cities WHERE id = :city_id AND user_id = :user_id LIMIT 1'
+            );
+            $cityStatement->execute(['city_id' => $cityId, 'user_id' => $userId]);
+            $city = $cityStatement->fetch();
+            $newTags = getContactTagSnapshotsForUser($pdo, $userId, $tagIds);
+
+            $changes = [];
+            foreach ([
+                'first_name' => ['label' => 'Ime', 'value' => $formValues['first_name']],
+                'last_name' => ['label' => 'Prezime', 'value' => $formValues['last_name']],
+                'phone' => ['label' => 'Telefon', 'value' => $formValues['phone']],
+                'email' => ['label' => 'E-mail', 'value' => $formValues['email']],
+            ] as $field => $definition) {
+                if ($before[$field] !== $definition['value']) {
+                    $changes[$field] = [
+                        'label' => $definition['label'],
+                        'old' => $before[$field],
+                        'new' => $definition['value'],
+                    ];
+                }
+            }
+
+            $newCity = ['id' => (int) $city['id'], 'name' => (string) $city['name']];
+            if ($before['city'] !== $newCity) {
+                $changes['city'] = ['label' => 'Grad', 'old' => $before['city'], 'new' => $newCity];
+            }
+
+            $oldTagIds = array_column($before['tags'], 'id');
+            $newTagIds = array_column($newTags, 'id');
+            if ($oldTagIds !== $newTagIds) {
+                $changes['tags'] = ['label' => 'Tagovi', 'old' => $before['tags'], 'new' => $newTags];
+            }
+
             $update = $pdo->prepare(
                 'UPDATE contacts
                  SET first_name = :first_name, last_name = :last_name, phone = :phone,
@@ -78,9 +114,19 @@ if (!isValidCsrfToken($_POST['csrf_token'] ?? null)) {
                 'user_id' => $userId,
             ]);
             synchronizeContactTags($pdo, $userId, $contactId, $tagIds);
+            recordContactHistoryEvent(
+                $pdo,
+                $userId,
+                $contactId,
+                $userId,
+                $actorEmail,
+                'contact_updated',
+                $changes,
+            );
             $pdo->commit();
             redirectTo('/contacts.php?' . http_build_query(['success' => 'updated'] + $returnContext));
         }
+        $pdo->rollBack();
     } catch (Throwable $exception) {
         if ($pdo instanceof PDO && $pdo->inTransaction()) {
             $pdo->rollBack();

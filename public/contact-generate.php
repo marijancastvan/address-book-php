@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 require_once dirname(__DIR__) . '/app/bootstrap.php';
 require_once dirname(__DIR__) . '/app/auth.php';
+require_once dirname(__DIR__) . '/app/history-helpers.php';
 
 $sendJson = static function (int $statusCode, array $payload): never {
     http_response_code($statusCode);
@@ -62,6 +63,7 @@ $pdo = null;
 try {
     $pdo = db();
     $pdo->beginTransaction();
+    lockUserForHistoryMutation($pdo, (int) $userId);
 
     $cityStatement = $pdo->prepare('SELECT id FROM cities WHERE user_id = :user_id ORDER BY id');
     $cityStatement->execute(['user_id' => $userId]);

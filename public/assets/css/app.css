@@ -133,6 +133,22 @@ h1 {
     box-shadow: inset 3px 0 #8fb0ff;
 }
 
+.sidebar .nav-link.active[href$="/contacts.php"] {
+    color: #203b6c;
+    background: #e8eef8;
+    box-shadow: inset 3px 0 #93b4e8;
+}
+
+.sidebar .nav-link.active[href$="/contacts.php"]:hover {
+    color: #1e3a8a;
+    background: #dbeafe;
+}
+
+.sidebar .nav-link.active[href$="/contacts.php"]:focus-visible {
+    outline: 2px solid #3b82f6;
+    outline-offset: 2px;
+}
+
 .logout-form {
     margin-top: auto;
 }

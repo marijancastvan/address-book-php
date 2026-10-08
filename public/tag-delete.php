@@ -27,7 +27,7 @@ if ($tagId === false || $tagId === null) {
 try {
     $deleted = deleteTagForUser(db(), (int) currentUserId(), $tagId);
     redirectTo($deleted ? '/tags.php?success=deleted' : '/tags.php?error=not_found');
-} catch (PDOException $exception) {
+} catch (Throwable $exception) {
     error_log('Tag deletion database error.');
     http_response_code(500);
     exit('Tag trenutno nije moguće obrisati. Pokušajte ponovo kasnije.');

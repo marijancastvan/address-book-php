@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 require_once dirname(__DIR__) . '/app/bootstrap.php';
 require_once dirname(__DIR__) . '/app/auth.php';
+require_once dirname(__DIR__) . '/app/csrf.php';
 require_once dirname(__DIR__) . '/app/city-helpers.php';
 
 if (!isAuthenticated()) {
@@ -26,6 +27,9 @@ $userId = currentUserId();
 $nameInput = $_POST['name'] ?? '';
 $cityName = is_scalar($nameInput) ? trim((string) $nameInput) : '';
 $errors = validateCityName($cityName);
+if (!isValidCsrfToken($_POST['csrf_token'] ?? null)) {
+    $errors['_form'] = 'Forma je istekla ili nije validna. Osvežite stranicu i pokušajte ponovo.';
+}
 
 try {
     $pdo = db();
@@ -38,8 +42,9 @@ try {
         $errors['name'] = 'Grad sa ovim nazivom već postoji.';
     }
     if ($errors === []) {
-        $update = $pdo->prepare('UPDATE cities SET name = :name WHERE id = :city_id AND user_id = :user_id');
-        $update->execute(['name' => $cityName, 'city_id' => $cityId, 'user_id' => $userId]);
+        if (!renameCityForUser($pdo, (int) $userId, $cityId, $cityName)) {
+            redirectTo('/cities.php?' . http_build_query(['error' => 'not_found'] + $returnContext));
+        }
         redirectTo('/cities.php?' . http_build_query(['success' => 'updated'] + $returnContext));
     }
 } catch (PDOException $exception) {
@@ -49,6 +54,9 @@ try {
         error_log('City editing database error: ' . $exception->getMessage());
         $errors['_form'] = 'Grad trenutno nije moguće sačuvati. Pokušajte ponovo kasnije.';
     }
+} catch (Throwable $exception) {
+    error_log('City editing failed while recording history.');
+    $errors['_form'] = 'Grad trenutno nije moguće sačuvati. Pokušajte ponovo kasnije.';
 }
 
 $_SESSION['city_form_state'] = ['mode' => 'edit', 'city_id' => $cityId, 'name' => $cityName, 'errors' => $errors];

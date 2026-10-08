@@ -2,6 +2,8 @@
 
 declare(strict_types=1);
 
+require_once __DIR__ . '/history-helpers.php';
+
 function normalizeTagName(string $name): ?string
 {
     if (preg_match('//u', $name) !== 1) {
@@ -60,20 +62,50 @@ function createTagForUser(PDO $pdo, int $userId, string $name): int
     return (int) $pdo->lastInsertId();
 }
 
-function renameTagForUser(PDO $pdo, int $userId, int $tagId, string $name): void
+function renameTagForUser(PDO $pdo, int $userId, int $tagId, string $name): bool
 {
-    $statement = $pdo->prepare(
-        'UPDATE tags SET name = :name WHERE id = :tag_id AND user_id = :user_id'
-    );
-    $statement->execute(['name' => $name, 'tag_id' => $tagId, 'user_id' => $userId]);
+    $pdo->beginTransaction();
+    try {
+        $actorEmail = lockUserForHistoryMutation($pdo, $userId);
+        $tagStatement = $pdo->prepare('SELECT id, name FROM tags WHERE id = :tag_id AND user_id = :user_id FOR UPDATE');
+        $tagStatement->execute(['tag_id' => $tagId, 'user_id' => $userId]);
+        $tag = $tagStatement->fetch(PDO::FETCH_ASSOC);
+        if ($tag === false) { $pdo->rollBack(); return false; }
+        if ((string) $tag['name'] === $name) { $pdo->commit(); return true; }
+        $contactsStatement = $pdo->prepare('SELECT c.id FROM contacts c JOIN contact_tags ct ON ct.contact_id = c.id AND ct.user_id = c.user_id WHERE c.user_id = :user_id AND ct.tag_id = :tag_id ORDER BY c.id FOR UPDATE');
+        $contactsStatement->execute(['user_id' => $userId, 'tag_id' => $tagId]);
+        $contactIds = array_map('intval', $contactsStatement->fetchAll(PDO::FETCH_COLUMN));
+        $oldTags = getContactTagSnapshotsByContactIds($pdo, $userId, $contactIds);
+        $update = $pdo->prepare('UPDATE tags SET name = :name WHERE id = :tag_id AND user_id = :user_id');
+        $update->execute(['name' => $name, 'tag_id' => $tagId, 'user_id' => $userId]);
+        $newTags = getContactTagSnapshotsByContactIds($pdo, $userId, $contactIds);
+        foreach ($contactIds as $contactId) {
+            recordContactHistoryEvent($pdo, $userId, $contactId, $userId, $actorEmail, 'tag_renamed', ['tags' => ['label' => 'Tagovi', 'old' => $oldTags[$contactId] ?? [], 'new' => $newTags[$contactId] ?? []]]);
+        }
+        $pdo->commit();
+        return true;
+    } catch (Throwable $exception) { if ($pdo->inTransaction()) $pdo->rollBack(); throw $exception; }
 }
 
 function deleteTagForUser(PDO $pdo, int $userId, int $tagId): bool
 {
-    $statement = $pdo->prepare('DELETE FROM tags WHERE id = :tag_id AND user_id = :user_id');
-    $statement->execute(['tag_id' => $tagId, 'user_id' => $userId]);
-
-    return $statement->rowCount() === 1;
+    $pdo->beginTransaction();
+    try {
+        $actorEmail = lockUserForHistoryMutation($pdo, $userId);
+        $tagStatement = $pdo->prepare('SELECT id FROM tags WHERE id = :tag_id AND user_id = :user_id FOR UPDATE');
+        $tagStatement->execute(['tag_id' => $tagId, 'user_id' => $userId]);
+        if ($tagStatement->fetchColumn() === false) { $pdo->rollBack(); return false; }
+        $contactsStatement = $pdo->prepare('SELECT c.id FROM contacts c JOIN contact_tags ct ON ct.contact_id = c.id AND ct.user_id = c.user_id WHERE c.user_id = :user_id AND ct.tag_id = :tag_id ORDER BY c.id FOR UPDATE');
+        $contactsStatement->execute(['user_id' => $userId, 'tag_id' => $tagId]);
+        $contactIds = array_map('intval', $contactsStatement->fetchAll(PDO::FETCH_COLUMN));
+        $oldTags = getContactTagSnapshotsByContactIds($pdo, $userId, $contactIds);
+        $delete = $pdo->prepare('DELETE FROM tags WHERE id = :tag_id AND user_id = :user_id');
+        $delete->execute(['tag_id' => $tagId, 'user_id' => $userId]);
+        $newTags = getContactTagSnapshotsByContactIds($pdo, $userId, $contactIds);
+        foreach ($contactIds as $contactId) recordContactHistoryEvent($pdo, $userId, $contactId, $userId, $actorEmail, 'tag_deleted', ['tags' => ['label' => 'Tagovi', 'old' => $oldTags[$contactId] ?? [], 'new' => $newTags[$contactId] ?? []]]);
+        $pdo->commit();
+        return true;
+    } catch (Throwable $exception) { if ($pdo->inTransaction()) $pdo->rollBack(); throw $exception; }
 }
 
 function isDuplicateTagError(PDOException $exception): bool

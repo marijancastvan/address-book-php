@@ -45,7 +45,9 @@ try {
         $errors['name'] = 'Tag sa ovim nazivom već postoji.';
     }
     if ($errors === []) {
-        renameTagForUser($pdo, $userId, $tagId, $tagName);
+        if (!renameTagForUser($pdo, $userId, $tagId, $tagName)) {
+            redirectTo('/tags.php?error=not_found');
+        }
         redirectTo('/tags.php?success=updated');
     }
 } catch (PDOException $exception) {
@@ -55,6 +57,9 @@ try {
         error_log('Tag editing database error.');
         $errors['_form'] = 'Tag trenutno nije moguće sačuvati. Pokušajte ponovo kasnije.';
     }
+} catch (Throwable $exception) {
+    error_log('Tag editing failed while recording history.');
+    $errors['_form'] = 'Tag trenutno nije moguće sačuvati. Pokušajte ponovo kasnije.';
 }
 
 $_SESSION['tag_form_state'] = ['mode' => 'edit', 'tag_id' => $tagId, 'name' => $tagName, 'errors' => $errors];

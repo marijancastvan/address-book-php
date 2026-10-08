@@ -197,11 +197,20 @@
             const actionsCell = document.createElement('td');
             actionsCell.dataset.label = 'Akcije';
             const actions = document.createElement('div');
-            actions.className = 'row-actions';
+            actions.className = 'row-actions contact-row-actions';
             const edit = document.createElement('a');
             edit.className = 'button button-small button-secondary';
             edit.textContent = 'Izmeni';
             edit.href = buildPageUrl(metadata.current_page, filters, { edit_id: String(contact.id) });
+
+            const historyLink = document.createElement('a');
+            historyLink.className = 'button button-small button-history';
+            historyLink.textContent = 'Istorija';
+            const historyParams = new URLSearchParams();
+            for (const name of filterNames) if (filters[name] !== '') historyParams.set(name, filters[name]);
+            historyParams.set('page', String(metadata.current_page));
+            historyParams.set('id', String(contact.id));
+            historyLink.href = `${appBase}/contact-history.php?${historyParams.toString()}`;
 
             const remove = document.createElement('button');
             remove.className = 'button button-small button-danger';
@@ -211,7 +220,7 @@
             remove.dataset.deleteId = String(contact.id);
             remove.dataset.deleteLabel = `${contact.first_name ?? ''} ${contact.last_name ?? ''}`.trim();
 
-            actions.append(edit, remove);
+            actions.append(historyLink, edit, remove);
             actionsCell.append(actions);
             row.append(actionsCell);
             body.append(row);

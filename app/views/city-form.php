@@ -6,6 +6,7 @@
         </header>
         <?php if (($errors['_form'] ?? '') !== ''): ?><p class="message message-error" role="alert"><?= escapeHtml($errors['_form']) ?></p><?php endif; ?>
         <form class="city-form" method="post" action="<?= escapeHtml($formAction) ?>" novalidate data-validate-form data-pending-submit>
+            <input type="hidden" name="csrf_token" value="<?= escapeHtml(csrfToken()) ?>">
             <?php if (isset($cityId)): ?><input type="hidden" name="city_id" value="<?= (int) $cityId ?>"><?php endif; ?>
             <?php $nameError = $errors['name'] ?? ''; ?>
             <div class="field-group">

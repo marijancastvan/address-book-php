@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 require_once dirname(__DIR__) . '/app/bootstrap.php';
 require_once dirname(__DIR__) . '/app/auth.php';
+require_once dirname(__DIR__) . '/app/csrf.php';
 require_once dirname(__DIR__) . '/app/city-helpers.php';
 
 if (!isAuthenticated()) {
@@ -120,6 +121,7 @@ $successMessage = citySuccessMessage();
 $errorMessage = match ($_GET['error'] ?? '') {
     'not_found' => 'Grad nije pronađen ili nemate dozvolu za pristup.',
     'has_contacts' => 'Nije moguće obrisati grad koji je povezan sa kontaktima.',
+    'csrf' => 'Forma je istekla ili nije validna. Osvežite stranicu i pokušajte ponovo.',
     default => ($openEditId && $editCity === null) ? 'Grad nije pronađen ili nemate dozvolu za pristup.' : null,
 };
 $activeNavigation = 'cities';
@@ -245,6 +247,7 @@ $baseUrl = rtrim($config['app']['base_url'], '/');
             <p data-confirm-message>Da li ste sigurni da želite da obrišete ovaj grad?</p>
             <form method="post" action="<?= escapeHtml($baseUrl) ?>/city-delete.php" class="form-actions" data-pending-submit>
                 <input type="hidden" name="city_id" value="" data-confirm-id>
+                <input type="hidden" name="csrf_token" value="<?= escapeHtml(csrfToken()) ?>">
                 <button class="button button-secondary" type="button" data-dialog-close>Otkaži</button>
                 <button class="button button-danger" type="submit" data-pending-label="Brisanje...">Izbriši</button>
             </form>

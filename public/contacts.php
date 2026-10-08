@@ -374,7 +374,8 @@ $baseUrl = rtrim($config['app']['base_url'], '/');
                                         <?php if ($contact['tags'] === []): ?><span class="contact-tag-empty">—</span><?php endif; ?>
                                         <?php foreach ($contact['tags'] as $tag): ?><span class="contact-tag"><?= escapeHtml((string) $tag['name']) ?></span><?php endforeach; ?>
                                     </div></td>
-                                    <td data-label="Akcije"><div class="row-actions">
+                                    <td data-label="Akcije"><div class="row-actions contact-row-actions">
+                                        <a class="button button-small button-history" href="<?= escapeHtml($baseUrl) ?>/contact-history.php?<?= escapeHtml(http_build_query(['id' => (int) $contact['id']] + $filters + ['page' => $page])) ?>">Istorija</a>
                                         <a class="button button-small button-secondary" href="<?= escapeHtml($baseUrl) ?>/contacts.php?<?= escapeHtml(http_build_query(['edit_id' => (int) $contact['id']] + $filters + ['page' => $page])) ?>">Izmeni</a>
                                         <button class="button button-small button-danger" type="button" data-confirm-open="contact-delete-dialog" data-delete-id="<?= (int) $contact['id'] ?>" data-delete-label="<?= escapeHtml($contact['first_name'] . ' ' . $contact['last_name']) ?>">Izbriši</button>
                                     </div></td>
@@ -486,6 +487,7 @@ $baseUrl = rtrim($config['app']['base_url'], '/');
             <p data-confirm-message>Da li ste sigurni da želite da obrišete ovaj kontakt?</p>
             <form method="post" action="<?= escapeHtml($baseUrl) ?>/contact-delete.php" class="form-actions" data-pending-submit>
                 <input type="hidden" name="contact_id" value="" data-confirm-id>
+                <input type="hidden" name="csrf_token" value="<?= escapeHtml(csrfToken()) ?>">
                 <button class="button button-secondary" type="button" data-dialog-close>Otkaži</button>
                 <button class="button button-danger" type="submit" data-pending-label="Brisanje...">Izbriši</button>
             </form>

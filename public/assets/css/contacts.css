@@ -327,3 +327,23 @@ a.pagination-link:hover {
         grid-template-columns: minmax(0, 1fr);
     }
 }
+.contact-row-actions {
+    flex-wrap: wrap;
+}
+
+.button-history {
+    border-color: #2563eb;
+    background: #2563eb;
+    color: #fff;
+}
+
+.button-history:hover {
+    border-color: #1d4ed8;
+    background: #1d4ed8;
+    color: #fff;
+}
+
+.button-history:focus-visible {
+    outline: 3px solid #93c5fd;
+    outline-offset: 2px;
+}

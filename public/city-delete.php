@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 require_once dirname(__DIR__) . '/app/bootstrap.php';
 require_once dirname(__DIR__) . '/app/auth.php';
+require_once dirname(__DIR__) . '/app/csrf.php';
+require_once dirname(__DIR__) . '/app/city-helpers.php';
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     http_response_code(405);
@@ -13,6 +15,9 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 
 if (!isAuthenticated()) {
     redirectTo('/login.php');
+}
+if (!isValidCsrfToken($_POST['csrf_token'] ?? null)) {
+    redirectTo('/cities.php?error=csrf');
 }
 
 $cityId = filter_var($_POST['city_id'] ?? null, FILTER_VALIDATE_INT, [
@@ -24,15 +29,9 @@ if ($cityId === false || $cityId === null) {
 }
 
 try {
-    $statement = db()->prepare(
-        'DELETE FROM cities WHERE id = :city_id AND user_id = :user_id'
-    );
-    $statement->execute([
-        'city_id' => $cityId,
-        'user_id' => currentUserId(),
-    ]);
+    $deleted = deleteCityForUser(db(), (int) currentUserId(), $cityId);
 
-    redirectTo($statement->rowCount() === 1
+    redirectTo($deleted
         ? '/cities.php?success=deleted'
         : '/cities.php?error=not_found');
 } catch (PDOException $exception) {
@@ -41,6 +40,10 @@ try {
     }
 
     error_log('City deletion database error: ' . $exception->getMessage());
+    http_response_code(500);
+    exit('Grad trenutno nije moguće obrisati. Pokušajte ponovo kasnije.');
+} catch (Throwable $exception) {
+    error_log('City deletion failed.');
     http_response_code(500);
     exit('Grad trenutno nije moguće obrisati. Pokušajte ponovo kasnije.');
 }

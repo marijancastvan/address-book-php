@@ -76,6 +76,10 @@
     color: #367976;
 }
 
+.feature-card:nth-child(2) h2 {
+    color: #24545e;
+}
+
 .feature-card:nth-child(3) .eyebrow,
 .feature-card:nth-child(3) h2 {
     color: #6b21a8;

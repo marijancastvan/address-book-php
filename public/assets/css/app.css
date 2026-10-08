@@ -149,6 +149,22 @@ h1 {
     outline-offset: 2px;
 }
 
+.sidebar .nav-link.active[href$="/cities.php"] {
+    color: #24545e;
+    background: #eaf5f3;
+    box-shadow: inset 3px 0 #68aaa3;
+}
+
+.sidebar .nav-link.active[href$="/cities.php"]:hover {
+    color: #24545e;
+    background: #eaf5f3;
+}
+
+.sidebar .nav-link[href$="/cities.php"]:focus-visible {
+    outline: 2px solid #68aaa3;
+    outline-offset: 2px;
+}
+
 .logout-form {
     margin-top: auto;
 }

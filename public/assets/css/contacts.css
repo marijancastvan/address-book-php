@@ -245,11 +245,22 @@ a.pagination-link:hover {
     gap: 8px;
     margin: 0 !important;
     padding: 6px 10px;
-    border: 1px solid #d7e0ed;
+    border: 1px solid #d8b4fe;
     border-radius: 999px;
-    color: #293750;
-    background: #f8faff;
+    color: #6b21a8;
+    background: #faf5ff;
     cursor: pointer;
+}
+
+.contact-tag-option:has(input:checked) {
+    border-color: #c084fc;
+    color: #6b21a8;
+    background: #f3e8ff;
+}
+
+.contact-tag-option:focus-within {
+    outline: 2px solid #9333ea;
+    outline-offset: 2px;
 }
 
 .contact-tag-option input {
@@ -258,7 +269,7 @@ a.pagination-link:hover {
     height: 16px;
     min-height: 16px;
     margin: 0;
-    accent-color: #286b70;
+    accent-color: #7e22ce;
 }
 
 .contact-tag-option span {
@@ -281,10 +292,10 @@ a.pagination-link:hover {
     max-width: 100%;
     align-items: center;
     padding: 3px 8px;
-    border: 1px solid #c7e2de;
+    border: 1px solid #d8b4fe;
     border-radius: 999px;
-    color: #24545e;
-    background: #eaf5f3;
+    color: #6b21a8;
+    background: #f3e8ff;
     font-size: 12px;
     font-weight: 650;
     line-height: 1.4;

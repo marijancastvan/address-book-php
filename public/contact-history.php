@@ -63,6 +63,8 @@ foreach (['search', 'city_id', 'tag_id', 'date_from', 'date_to'] as $key) {
 $sourcePage = filter_var($_GET['page'] ?? 1, FILTER_VALIDATE_INT);
 $sourcePage = is_int($sourcePage) && $sourcePage > 0 ? $sourcePage : 1;
 $backUrl = $baseUrl . '/contacts.php?' . http_build_query($context + ['page' => $sourcePage]);
+$utcTimezone = new DateTimeZone('UTC');
+$historyTimezone = new DateTimeZone('Europe/Belgrade');
 $actionLabels = ['contact_updated' => 'Izmena kontakta', 'tag_renamed' => 'Preimenovanje taga', 'tag_deleted' => 'Brisanje taga', 'city_renamed' => 'Preimenovanje grada'];
 $formatValue = static function (string $value): string {
     $decoded = json_decode($value, true);
@@ -89,7 +91,7 @@ $formatValue = static function (string $value): string {
 <?php else: ?><header class="history-title-panel"><p class="eyebrow">ISTORIJA PROMENA</p><h1><?= escapeHtml($contact['first_name'] . ' ' . $contact['last_name']) ?></h1></header>
 <?php if ($events === []): ?><section class="empty-state history-empty-state"><p>Za ovaj kontakt još nema zabeleženih izmena.</p></section>
 <?php else: ?><ol class="history-list">
-<?php foreach ($events as $event): $eventTime = DateTimeImmutable::createFromFormat('!Y-m-d H:i:s', (string) $event['occurred_at']); ?><li class="history-event"><header><h2><?= escapeHtml($actionLabels[$event['action']] ?? 'Promena kontakta') ?></h2><p class="history-event-meta"><span><strong>Mail:</strong> <?= escapeHtml($event['actor_email_snapshot']) ?></span><time datetime="<?= escapeHtml((string) $event['occurred_at']) ?>"><strong>Time:</strong> <?= escapeHtml($eventTime instanceof DateTimeImmutable ? $eventTime->format('H:i d-m-Y') : (string) $event['occurred_at']) ?></time></p></header>
+<?php foreach ($events as $event): $storedEventTime = (string) $event['occurred_at']; $parsedEventTime = DateTimeImmutable::createFromFormat('!Y-m-d H:i:s', $storedEventTime, $utcTimezone); $eventTime = $parsedEventTime instanceof DateTimeImmutable ? $parsedEventTime->setTimezone($historyTimezone) : null; ?><li class="history-event"><header><h2><?= escapeHtml($actionLabels[$event['action']] ?? 'Promena kontakta') ?></h2><p class="history-event-meta"><span><strong>Mail:</strong> <?= escapeHtml($event['actor_email_snapshot']) ?></span><time datetime="<?= escapeHtml($eventTime?->format(DATE_ATOM) ?? $storedEventTime) ?>"><strong>Time:</strong> <?= escapeHtml($eventTime?->format('H:i d-m-Y') ?? $storedEventTime) ?></time></p></header>
 <dl><?php foreach ($event['changes'] as $change): ?><div><dt><?= escapeHtml($change['field_label']) ?></dt><dd><span class="history-old-value"><?= escapeHtml($formatValue($change['old_value'])) ?></span><span class="history-change-arrow" aria-hidden="true"> → </span><strong class="history-new-value"><?= escapeHtml($formatValue($change['new_value'])) ?></strong></dd></div><?php endforeach; ?></dl></li><?php endforeach; ?></ol>
 <?php if ($totalPages > 1): ?><nav class="history-pagination" aria-label="Stranice istorije">
 <?php for ($p = 1; $p <= $totalPages; $p++): $params = $context + ['page' => $sourcePage, 'id' => (int) $contactId, 'history_page' => $p]; ?><a class="pagination-link <?= $p === $historyPage ? 'is-current' : '' ?>" href="?<?= escapeHtml(http_build_query($params)) ?>" <?= $p === $historyPage ? 'aria-current="page"' : '' ?>><?= $p ?></a><?php endfor; ?>

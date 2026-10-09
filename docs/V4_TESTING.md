@@ -120,19 +120,20 @@ Migracija `app/database/migrations/005_create_contact_history.sql` se ne pokreć
 mysql -u USER -p DATABASE < app/database/migrations/005_create_contact_history.sql
 ```
 
-Proverite da postoje `contact_history_events` i `contact_history_changes` i njihovi ključevi. Vremena događaja se zapisuju sa `UTC_TIMESTAMP()` i prikazuju sa oznakom UTC.
+Proverite da postoje `contact_history_events` i `contact_history_changes` i njihovi ključevi. Aplikacija upisuje `occurred_at` pomoću `UTC_TIMESTAMP()`; vrednost `DATETIME` se pri prikazu tumači kao UTC i konvertuje u `Europe/Belgrade`, uz automatski CET/CEST pomak. Prikaz je `Time: HH:mm dd-mm-yyyy` bez oznake vremenske zone. Postojeći zapisi se konvertuju pri čitanju i ne menjaju se u bazi. Za zapise ručno unete ili menjane van aplikacije ne može se utvrditi zona samo iz `DATETIME` vrednosti.
 
 ## Funkcionalni testovi
 
 1. Izmenite ime, telefon, e-mail, grad i/ili tag kontakta. Stranica Istorija treba da prikaže samo stvarno promenjena polja sa starim i novim vrednostima, vremenom i email-om aktera.
-2. Sačuvajte kontakt bez promena: ne treba da nastane novi događaj. Dodajte, zamenite i uklonite tagove i proverite snapshot-e naziva i ID-jeva.
-3. Preimenujte tag povezan sa više kontakata: svaki pogođeni kontakt dobija događaj sa starim i novim skupom tagova. Obrišite tag: događaji pokazuju uklonjeni tag, kontakti ostaju.
-4. Preimenujte grad povezan sa više kontakata: svaki kontakt dobija staro i novo ime grada. Pokušaj brisanja grada povezanog sa kontaktom ostaje odbijen postojećim FK ograničenjem.
-5. Kreirajte kontakt ručno i preko generatora: ne nastaje istorijski događaj. Obrišite kontakt: njegov događaj i promene se uklanjaju kaskadno.
-6. Na listi sa aktivnom pretragom/filterima i stranom većom od 1 otvorite Istorija, pa Nazad na kontakte; filteri i broj strane treba da ostanu sačuvani. Testirajte istoriju sa preko 25 događaja i proverite najnoviji događaj prvi.
-7. Otvorite istoriju tuđeg ili nepostojećeg ID-ja: oba slučaja daju isti 404 odgovor bez prikaza podataka. Proverite escaping koristeći HTML specijalne znakove u nazivu taga/grada.
-8. Testirajte CSRF validaciju na kreiranju/izmeni kontakta, brisanju kontakta, izmeni/brisanja grada i taga; zahtevi bez tokena ili sa pogrešnim tokenom ne smeju menjati podatke.
-9. Za proveru atomicity-jaa izolovanoj bazi izazovite neuspeh upisa istorije tokom izmene, pa proverite da su i kontakt i njegove tag veze vraćeni na prethodno stanje.
+2. Izmenite kontakt i uporedite vreme novog događaja sa lokalnim vremenom u `Europe/Belgrade`. Proverite zimski i letnji datum, uključujući UTC vreme koje nakon konverzije prelazi ponoć; očekivani prikaz je `Time: HH:mm dd-mm-yyyy`, bez `UTC`.
+3. Sačuvajte kontakt bez promena: ne treba da nastane novi događaj. Dodajte, zamenite i uklonite tagove i proverite snapshot-e naziva i ID-jeva.
+4. Preimenujte tag povezan sa više kontakata: svaki pogođeni kontakt dobija događaj sa starim i novim skupom tagova. Obrišite tag: događaji pokazuju uklonjeni tag, kontakti ostaju.
+5. Preimenujte grad povezan sa više kontakata: svaki kontakt dobija staro i novo ime grada. Pokušaj brisanja grada povezanog sa kontaktom ostaje odbijen postojećim FK ograničenjem.
+6. Kreirajte kontakt ručno i preko generatora: ne nastaje istorijski događaj. Obrišite kontakt: njegov događaj i promene se uklanjaju kaskadno.
+7. Na listi sa aktivnom pretragom/filterima i stranom većom od 1 otvorite Istorija, pa Nazad na kontakte; filteri i broj strane treba da ostanu sačuvani. Testirajte istoriju sa preko 25 događaja i proverite najnoviji događaj prvi.
+8. Otvorite istoriju tuđeg ili nepostojećeg ID-ja: oba slučaja daju isti 404 odgovor bez prikaza podataka. Proverite escaping koristeći HTML specijalne znakove u nazivu taga/grada.
+9. Testirajte CSRF validaciju na kreiranju/izmeni kontakta, brisanju kontakta, izmeni/brisanja grada i taga; zahtevi bez tokena ili sa pogrešnim tokenom ne smeju menjati podatke.
+10. Za proveru atomicity-jaa izolovanoj bazi izazovite neuspeh upisa istorije tokom izmene, pa proverite da su i kontakt i njegove tag veze vraćeni na prethodno stanje.
 
 ## Transakcije i lock redosled
 

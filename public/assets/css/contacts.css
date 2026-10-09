@@ -312,6 +312,9 @@ a.pagination-link:hover {
 
 .contact-tags {
     display: flex;
+    width: 100%;
+    min-width: 0;
+    max-width: 260px;
     flex-wrap: wrap;
     align-items: center;
     gap: 5px;
@@ -319,6 +322,7 @@ a.pagination-link:hover {
 
 .contact-tag {
     display: inline-flex;
+    flex: 0 0 auto;
     max-width: 100%;
     align-items: center;
     padding: 3px 8px;

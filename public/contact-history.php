@@ -5,6 +5,7 @@ declare(strict_types=1);
 require_once dirname(__DIR__) . '/app/bootstrap.php';
 require_once dirname(__DIR__) . '/app/auth.php';
 require_once dirname(__DIR__) . '/app/csrf.php';
+require_once dirname(__DIR__) . '/app/contact-helpers.php';
 
 if (!isAuthenticated()) {
     redirectTo('/login.php');
@@ -60,6 +61,7 @@ $context = [];
 foreach (['search', 'city_id', 'tag_id', 'date_from', 'date_to'] as $key) {
     if (isset($_GET[$key]) && is_scalar($_GET[$key]) && (string) $_GET[$key] !== '') $context[$key] = (string) $_GET[$key];
 }
+$context += normalizeContactSorting($_GET['sort'] ?? null, $_GET['direction'] ?? null);
 $sourcePage = filter_var($_GET['page'] ?? 1, FILTER_VALIDATE_INT);
 $sourcePage = is_int($sourcePage) && $sourcePage > 0 ? $sourcePage : 1;
 $backUrl = $baseUrl . '/contacts.php?' . http_build_query($context + ['page' => $sourcePage]);

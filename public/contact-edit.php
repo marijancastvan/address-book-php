@@ -26,6 +26,10 @@ $returnContext = [
     'tag_id' => is_scalar($_GET['tag_id'] ?? $_POST['tag_id'] ?? '') ? (string) ($_GET['tag_id'] ?? $_POST['tag_id'] ?? '') : '',
     'date_from' => is_scalar($_GET['date_from'] ?? $_POST['date_from'] ?? '') ? (string) ($_GET['date_from'] ?? $_POST['date_from'] ?? '') : '',
     'date_to' => is_scalar($_GET['date_to'] ?? $_POST['date_to'] ?? '') ? (string) ($_GET['date_to'] ?? $_POST['date_to'] ?? '') : '',
+    ...normalizeContactSorting(
+        $_GET['sort'] ?? $_POST['sort'] ?? null,
+        $_GET['direction'] ?? $_POST['direction'] ?? null,
+    ),
     'page' => $returnPage,
 ];
 if (($_SERVER['REQUEST_METHOD'] ?? '') !== 'POST') {

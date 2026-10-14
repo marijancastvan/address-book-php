@@ -31,6 +31,16 @@
         url.searchParams.get(name) ?? '',
     ]));
 
+    const readSorting = () => ({
+        sort: form.elements.namedItem('sort')?.value || 'first_name',
+        direction: form.elements.namedItem('direction')?.value || 'asc',
+    });
+
+    const sortingFromUrl = (url) => ({
+        sort: url.searchParams.get('sort') || 'first_name',
+        direction: url.searchParams.get('direction') || 'asc',
+    });
+
     const setFormFilters = (filters) => {
         for (const name of filterNames) {
             const control = form.elements.namedItem(name);
@@ -38,12 +48,21 @@
         }
     };
 
-    const buildPageUrl = (page, filters, extra = {}) => {
+    const setFormSorting = (sorting) => {
+        const sortControl = form.elements.namedItem('sort');
+        const directionControl = form.elements.namedItem('direction');
+        if (sortControl) sortControl.value = sorting.sort;
+        if (directionControl) directionControl.value = sorting.direction;
+    };
+
+    const buildPageUrl = (page, filters, sorting, extra = {}) => {
         const params = new URLSearchParams();
         for (const name of filterNames) {
             if (filters[name] !== '') params.set(name, filters[name]);
         }
         params.set('page', String(page));
+        params.set('sort', sorting.sort);
+        params.set('direction', sorting.direction);
         for (const [name, value] of Object.entries(extra)) params.set(name, value);
         return `${appBase}/contacts.php?${params.toString()}`;
     };
@@ -55,11 +74,11 @@
         return cell;
     };
 
-    const createPaginationLink = (label, page, filters, options = {}) => {
+    const createPaginationLink = (label, page, filters, sorting, options = {}) => {
         const link = document.createElement('a');
         link.className = 'pagination-link';
         link.textContent = label;
-        link.href = buildPageUrl(page, filters);
+        link.href = buildPageUrl(page, filters, sorting);
         if (options.current) {
             link.classList.add('is-current');
             link.setAttribute('aria-current', 'page');
@@ -69,7 +88,7 @@
         return link;
     };
 
-    const renderPagination = (metadata, filters) => {
+    const renderPagination = (metadata, filters, sorting) => {
         if (!pagination) return;
 
         const currentPage = Number(metadata.current_page) || 1;
@@ -79,7 +98,7 @@
         if (pagination.hidden) return;
 
         if (currentPage > 1) {
-            pagination.append(createPaginationLink('Prethodna', currentPage - 1, filters, { rel: 'prev' }));
+            pagination.append(createPaginationLink('Prethodna', currentPage - 1, filters, sorting, { rel: 'prev' }));
         } else {
             const previous = document.createElement('span');
             previous.className = 'pagination-link is-disabled';
@@ -99,21 +118,21 @@
         };
 
         if (startPage > 1) {
-            pagination.append(createPaginationLink('1', 1, filters));
+            pagination.append(createPaginationLink('1', 1, filters, sorting));
             if (startPage > 2) appendEllipsis();
         }
         for (let page = startPage; page <= endPage; page += 1) {
-            pagination.append(createPaginationLink(String(page), page, filters, {
+            pagination.append(createPaginationLink(String(page), page, filters, sorting, {
                 current: page === currentPage,
             }));
         }
         if (endPage < totalPages) {
             if (endPage < totalPages - 1) appendEllipsis();
-            pagination.append(createPaginationLink(String(totalPages), totalPages, filters));
+            pagination.append(createPaginationLink(String(totalPages), totalPages, filters, sorting));
         }
 
         if (currentPage < totalPages) {
-            pagination.append(createPaginationLink('Sledeća', currentPage + 1, filters, { rel: 'next' }));
+            pagination.append(createPaginationLink('Sledeća', currentPage + 1, filters, sorting, { rel: 'next' }));
         } else {
             const next = document.createElement('span');
             next.className = 'pagination-link is-disabled';
@@ -123,9 +142,9 @@
         }
     };
 
-    const renderContacts = (contacts, metadata, filters) => {
+    const renderContacts = (contacts, metadata, filters, sorting) => {
         results.replaceChildren();
-        renderPagination(metadata, filters);
+        renderPagination(metadata, filters, sorting);
 
         if (contacts.length === 0) {
             const emptyState = document.createElement('section');
@@ -156,10 +175,32 @@
         const table = document.createElement('table');
         const head = document.createElement('thead');
         const headingRow = document.createElement('tr');
-        for (const [, label] of [...columns, ['actions', 'Akcije']]) {
+        for (const [key, label] of [...columns, ['actions', 'Akcije']]) {
             const heading = document.createElement('th');
             heading.scope = 'col';
-            heading.textContent = label;
+            if (['first_name', 'last_name', 'phone', 'email'].includes(key)) {
+                const active = sorting.sort === key;
+                heading.setAttribute('aria-sort', active
+                    ? (sorting.direction === 'asc' ? 'ascending' : 'descending')
+                    : 'none');
+                const nextDirection = active && sorting.direction === 'asc' ? 'desc' : 'asc';
+                const link = document.createElement('a');
+                link.className = 'contact-sort-link';
+                link.href = buildPageUrl(1, filters, { sort: key, direction: nextDirection });
+                link.dataset.contactSort = key;
+                link.dataset.sortDirection = nextDirection;
+                link.append(document.createTextNode(label));
+                if (active) {
+                    const indicator = document.createElement('span');
+                    indicator.className = 'contact-sort-indicator';
+                    indicator.setAttribute('aria-hidden', 'true');
+                    indicator.textContent = sorting.direction === 'asc' ? '↑' : '↓';
+                    link.append(' ', indicator);
+                }
+                heading.append(link);
+            } else {
+                heading.textContent = label;
+            }
             headingRow.append(heading);
         }
         head.append(headingRow);
@@ -201,7 +242,7 @@
             const edit = document.createElement('a');
             edit.className = 'button button-small button-secondary';
             edit.textContent = 'Izmeni';
-            edit.href = buildPageUrl(metadata.current_page, filters, { edit_id: String(contact.id) });
+            edit.href = buildPageUrl(metadata.current_page, filters, sorting, { edit_id: String(contact.id) });
 
             const historyLink = document.createElement('a');
             historyLink.className = 'button button-small button-history';
@@ -209,6 +250,8 @@
             const historyParams = new URLSearchParams();
             for (const name of filterNames) if (filters[name] !== '') historyParams.set(name, filters[name]);
             historyParams.set('page', String(metadata.current_page));
+            historyParams.set('sort', sorting.sort);
+            historyParams.set('direction', sorting.direction);
             historyParams.set('id', String(contact.id));
             historyLink.href = `${appBase}/contact-history.php?${historyParams.toString()}`;
 
@@ -231,7 +274,7 @@
         results.append(wrapper);
     };
 
-    const fetchContacts = async (filters, page, version) => {
+    const fetchContacts = async (filters, page, sorting, version) => {
         const controller = new AbortController();
         activeController = controller;
         results.setAttribute('aria-busy', 'true');
@@ -243,6 +286,8 @@
             if (filters[name] !== '') query.set(name, filters[name]);
         }
         query.set('page', String(page));
+        query.set('sort', sorting.sort);
+        query.set('direction', sorting.direction);
         query.set('format', 'json');
 
         try {
@@ -259,12 +304,13 @@
                 const message = typeof payload.error === 'string' ? payload.error : payload.error?.message;
                 throw new Error(message || 'Filtriranje kontakata nije uspelo.');
             }
-            if (!Array.isArray(payload.contacts) || !payload.pagination) {
+            if (!Array.isArray(payload.contacts) || !payload.pagination || !payload.sorting) {
                 throw new Error('Odgovor servera nije ispravan. Pokušajte ponovo.');
             }
 
-            renderContacts(payload.contacts, payload.pagination, filters);
-            history.replaceState({}, '', buildPageUrl(payload.pagination.current_page, filters));
+            setFormSorting(payload.sorting);
+            renderContacts(payload.contacts, payload.pagination, filters, payload.sorting);
+            history.replaceState({}, '', buildPageUrl(payload.pagination.current_page, filters, payload.sorting));
             status.textContent = '';
             status.removeAttribute('data-state');
         } catch (error) {
@@ -279,15 +325,16 @@
         }
     };
 
-    const request = (filters, page, delay, historyMode = 'push') => {
+    const request = (filters, page, delay, historyMode = 'push', sorting = readSorting()) => {
         window.clearTimeout(debounceTimer);
         const version = ++requestVersion;
         activeController?.abort();
-        const destination = buildPageUrl(page, filters);
+        setFormSorting(sorting);
+        const destination = buildPageUrl(page, filters, sorting);
         if (destination !== `${window.location.pathname}${window.location.search}`) {
             history[`${historyMode}State`]({}, '', destination);
         }
-        debounceTimer = window.setTimeout(() => fetchContacts(filters, page, version), delay);
+        debounceTimer = window.setTimeout(() => fetchContacts(filters, page, sorting, version), delay);
     };
 
     form.addEventListener('input', (event) => {
@@ -304,13 +351,25 @@
         const link = event.target.closest('a[data-page]');
         if (!link) return;
         event.preventDefault();
-        request(readFilters(), Number(link.dataset.page) || 1, 0);
+        request(readFilters(), Number(link.dataset.page) || 1, 0, 'push', readSorting());
+    });
+
+    results.addEventListener('click', (event) => {
+        const link = event.target.closest('a[data-contact-sort]');
+        if (!link || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+        event.preventDefault();
+        request(readFilters(), 1, 0, 'push', {
+            sort: link.dataset.contactSort,
+            direction: link.dataset.sortDirection,
+        });
     });
 
     window.addEventListener('popstate', () => {
         const url = new URL(window.location.href);
         const filters = filtersFromUrl(url);
+        const sorting = sortingFromUrl(url);
         setFormFilters(filters);
-        request(filters, Number(url.searchParams.get('page')) || 1, 0, 'replace');
+        setFormSorting(sorting);
+        request(filters, Number(url.searchParams.get('page')) || 1, 0, 'replace', sorting);
     });
 })();

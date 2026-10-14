@@ -41,6 +41,9 @@ $filters = [
     'date_from' => $dateFromValue,
     'date_to' => $dateToValue,
 ];
+$sorting = normalizeContactSorting($_GET['sort'] ?? null, $_GET['direction'] ?? null);
+$sortColumns = contactSortColumns();
+$sortQuery = $sorting;
 $activeFilters = array_filter($filters, static fn (string $value): bool => $value !== '');
 $pageSize = 25;
 $pageInput = filter_var($_GET['page'] ?? 1, FILTER_VALIDATE_INT);
@@ -158,7 +161,7 @@ try {
                    contacts.email, contacts.city_id, cities.name AS city_name
             FROM contacts
             INNER JOIN cities ON cities.id = contacts.city_id' . $whereSql . '
-            ORDER BY contacts.first_name ASC, contacts.last_name ASC, contacts.id ASC
+            ORDER BY ' . contactOrderBySql($sorting) . '
             LIMIT :limit OFFSET :offset';
         $statement = $pdo->prepare($sql);
         foreach ($parameters as $name => $value) {
@@ -193,6 +196,7 @@ try {
         echo json_encode([
             'contacts' => $jsonContacts,
             'filters' => $filters,
+            'sorting' => $sorting,
             'pagination' => [
                 'current_page' => $page,
                 'page_size' => $pageSize,
@@ -306,6 +310,8 @@ $baseUrl = rtrim($config['app']['base_url'], '/');
             <p class="message message-success" id="contact-generator-success" role="status" aria-live="polite" hidden></p>
 
             <form class="contact-search" method="get" action="<?= escapeHtml($baseUrl) ?>/contacts.php" role="search">
+                <input type="hidden" name="sort" value="<?= escapeHtml($sorting['sort']) ?>">
+                <input type="hidden" name="direction" value="<?= escapeHtml($sorting['direction']) ?>">
                 <div class="search-field">
                     <label for="contact-search">Pretraži kontakte</label>
                     <input id="contact-search" name="search" type="search" value="<?= escapeHtml($searchTerm) ?>" placeholder="Ime, prezime, telefon ili email..." autocomplete="off" aria-controls="contact-results">
@@ -340,7 +346,7 @@ $baseUrl = rtrim($config['app']['base_url'], '/');
                 </div>
                 <div class="contact-filter-actions">
                     <button class="button button-primary" type="submit">Primeni filtere</button>
-                    <a class="button button-secondary" href="<?= escapeHtml($baseUrl) ?>/contacts.php">Poništi filtere</a>
+                    <a class="button button-secondary" href="<?= escapeHtml($baseUrl) ?>/contacts.php?<?= escapeHtml(http_build_query($sortQuery)) ?>">Poništi filtere</a>
                 </div>
             </form>
             <p class="search-status" id="contact-search-status" role="status" aria-live="polite"></p>
@@ -362,7 +368,21 @@ $baseUrl = rtrim($config['app']['base_url'], '/');
             <?php else: ?>
                 <div class="table-wrap">
                     <table>
-                        <thead><tr><th scope="col">Ime</th><th scope="col">Prezime</th><th scope="col">Telefon</th><th scope="col">Email</th><th scope="col">Grad</th><th scope="col">Tagovi</th><th scope="col">Akcije</th></tr></thead>
+                        <thead><tr>
+                            <?php foreach ($sortColumns as $sortKey => $sortDefinition): ?>
+                                <?php
+                                $isActiveSort = $sorting['sort'] === $sortKey;
+                                $nextSortDirection = $isActiveSort && $sorting['direction'] === 'asc' ? 'desc' : 'asc';
+                                $sortLink = $filters + ['sort' => $sortKey, 'direction' => $nextSortDirection, 'page' => 1];
+                                ?>
+                                <th scope="col" aria-sort="<?= $isActiveSort ? ($sorting['direction'] === 'asc' ? 'ascending' : 'descending') : 'none' ?>">
+                                    <a class="contact-sort-link" href="<?= escapeHtml($baseUrl) ?>/contacts.php?<?= escapeHtml(http_build_query($sortLink)) ?>" data-contact-sort="<?= escapeHtml($sortKey) ?>" data-sort-direction="<?= escapeHtml($nextSortDirection) ?>">
+                                        <?= escapeHtml($sortDefinition['label']) ?><?php if ($isActiveSort): ?> <span class="contact-sort-indicator" aria-hidden="true"><?= $sorting['direction'] === 'asc' ? '↑' : '↓' ?></span><?php endif; ?>
+                                    </a>
+                                </th>
+                            <?php endforeach; ?>
+                            <th scope="col">Grad</th><th scope="col">Tagovi</th><th scope="col">Akcije</th>
+                        </tr></thead>
                         <tbody>
                             <?php foreach ($contacts as $contact): ?>
                                 <tr>
@@ -376,8 +396,8 @@ $baseUrl = rtrim($config['app']['base_url'], '/');
                                         <?php foreach ($contact['tags'] as $tag): ?><span class="contact-tag"><?= escapeHtml((string) $tag['name']) ?></span><?php endforeach; ?>
                                     </div></td>
                                     <td data-label="Akcije"><div class="row-actions contact-row-actions">
-                                        <a class="button button-small button-history" href="<?= escapeHtml($baseUrl) ?>/contact-history.php?<?= escapeHtml(http_build_query(['id' => (int) $contact['id']] + $filters + ['page' => $page])) ?>">Istorija</a>
-                                        <a class="button button-small button-secondary" href="<?= escapeHtml($baseUrl) ?>/contacts.php?<?= escapeHtml(http_build_query(['edit_id' => (int) $contact['id']] + $filters + ['page' => $page])) ?>">Izmeni</a>
+                                        <a class="button button-small button-history" href="<?= escapeHtml($baseUrl) ?>/contact-history.php?<?= escapeHtml(http_build_query(['id' => (int) $contact['id']] + $filters + $sortQuery + ['page' => $page])) ?>">Istorija</a>
+                                        <a class="button button-small button-secondary" href="<?= escapeHtml($baseUrl) ?>/contacts.php?<?= escapeHtml(http_build_query(['edit_id' => (int) $contact['id']] + $filters + $sortQuery + ['page' => $page])) ?>">Izmeni</a>
                                         <button class="button button-small button-danger" type="button" data-confirm-open="contact-delete-dialog" data-delete-id="<?= (int) $contact['id'] ?>" data-delete-label="<?= escapeHtml($contact['first_name'] . ' ' . $contact['last_name']) ?>">Izbriši</button>
                                     </div></td>
                                 </tr>
@@ -389,7 +409,7 @@ $baseUrl = rtrim($config['app']['base_url'], '/');
             </div>
             <nav class="contacts-pagination" id="contacts-pagination" aria-label="Paginacija kontakata" <?= $totalPages <= 1 ? 'hidden' : '' ?>>
                 <?php if ($page > 1): ?>
-                    <a class="pagination-link" data-page="<?= $page - 1 ?>" href="<?= escapeHtml($baseUrl) ?>/contacts.php?<?= escapeHtml(http_build_query($filters + ['page' => $page - 1])) ?>" rel="prev">Prethodna</a>
+                    <a class="pagination-link" data-page="<?= $page - 1 ?>" href="<?= escapeHtml($baseUrl) ?>/contacts.php?<?= escapeHtml(http_build_query($filters + $sortQuery + ['page' => $page - 1])) ?>" rel="prev">Prethodna</a>
                 <?php else: ?>
                     <span class="pagination-link is-disabled" aria-disabled="true">Prethodna</span>
                 <?php endif; ?>
@@ -399,7 +419,7 @@ $baseUrl = rtrim($config['app']['base_url'], '/');
                 $endPage = min($totalPages, $page + 2);
                 if ($startPage > 1):
                 ?>
-                    <a class="pagination-link" data-page="1" href="<?= escapeHtml($baseUrl) ?>/contacts.php?<?= escapeHtml(http_build_query($filters + ['page' => 1])) ?>">1</a>
+                    <a class="pagination-link" data-page="1" href="<?= escapeHtml($baseUrl) ?>/contacts.php?<?= escapeHtml(http_build_query($filters + $sortQuery + ['page' => 1])) ?>">1</a>
                     <?php if ($startPage > 2): ?><span class="pagination-ellipsis" aria-hidden="true">…</span><?php endif; ?>
                 <?php endif; ?>
 
@@ -407,17 +427,17 @@ $baseUrl = rtrim($config['app']['base_url'], '/');
                     <?php if ($pageNumber === $page): ?>
                         <span class="pagination-link is-current" aria-current="page"><?= $pageNumber ?></span>
                     <?php else: ?>
-                        <a class="pagination-link" data-page="<?= $pageNumber ?>" href="<?= escapeHtml($baseUrl) ?>/contacts.php?<?= escapeHtml(http_build_query($filters + ['page' => $pageNumber])) ?>"><?= $pageNumber ?></a>
+                        <a class="pagination-link" data-page="<?= $pageNumber ?>" href="<?= escapeHtml($baseUrl) ?>/contacts.php?<?= escapeHtml(http_build_query($filters + $sortQuery + ['page' => $pageNumber])) ?>"><?= $pageNumber ?></a>
                     <?php endif; ?>
                 <?php endfor; ?>
 
                 <?php if ($endPage < $totalPages): ?>
                     <?php if ($endPage < $totalPages - 1): ?><span class="pagination-ellipsis" aria-hidden="true">…</span><?php endif; ?>
-                    <a class="pagination-link" data-page="<?= $totalPages ?>" href="<?= escapeHtml($baseUrl) ?>/contacts.php?<?= escapeHtml(http_build_query($filters + ['page' => $totalPages])) ?>"><?= $totalPages ?></a>
+                    <a class="pagination-link" data-page="<?= $totalPages ?>" href="<?= escapeHtml($baseUrl) ?>/contacts.php?<?= escapeHtml(http_build_query($filters + $sortQuery + ['page' => $totalPages])) ?>"><?= $totalPages ?></a>
                 <?php endif; ?>
 
                 <?php if ($page < $totalPages): ?>
-                    <a class="pagination-link" data-page="<?= $page + 1 ?>" href="<?= escapeHtml($baseUrl) ?>/contacts.php?<?= escapeHtml(http_build_query($filters + ['page' => $page + 1])) ?>" rel="next">Sledeća</a>
+                    <a class="pagination-link" data-page="<?= $page + 1 ?>" href="<?= escapeHtml($baseUrl) ?>/contacts.php?<?= escapeHtml(http_build_query($filters + $sortQuery + ['page' => $page + 1])) ?>" rel="next">Sledeća</a>
                 <?php else: ?>
                     <span class="pagination-link is-disabled" aria-disabled="true">Sledeća</span>
                 <?php endif; ?>
@@ -445,6 +465,7 @@ $baseUrl = rtrim($config['app']['base_url'], '/');
         $formAction = $baseUrl . '/contact-edit.php?' . http_build_query([
             'id' => (int) $editContact['id'],
             ...$filters,
+            ...$sortQuery,
             'page' => $page,
         ]);
         $formValues = $editValues;

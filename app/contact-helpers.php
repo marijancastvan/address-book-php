@@ -2,6 +2,53 @@
 
 declare(strict_types=1);
 
+/** SQL columns are fixed here so request input can never become an ORDER BY identifier. */
+function contactSortColumns(): array
+{
+    return [
+        'first_name' => ['column' => 'contacts.first_name', 'label' => 'Ime'],
+        'last_name' => ['column' => 'contacts.last_name', 'label' => 'Prezime'],
+        'phone' => ['column' => 'contacts.phone', 'label' => 'Telefon'],
+        'email' => ['column' => 'contacts.email', 'label' => 'Email'],
+    ];
+}
+
+function normalizeContactSorting(mixed $sortInput, mixed $directionInput): array
+{
+    $columns = contactSortColumns();
+    $sort = is_string($sortInput) && array_key_exists($sortInput, $columns)
+        ? $sortInput
+        : 'first_name';
+    $direction = is_string($directionInput) ? strtolower($directionInput) : '';
+    if (!in_array($direction, ['asc', 'desc'], true)) {
+        $direction = 'asc';
+    }
+
+    return ['sort' => $sort, 'direction' => $direction];
+}
+
+function contactOrderBySql(array $sorting): string
+{
+    $sorting = normalizeContactSorting($sorting['sort'] ?? null, $sorting['direction'] ?? null);
+    $columns = contactSortColumns();
+    $column = $columns[$sorting['sort']]['column'];
+    $direction = strtoupper($sorting['direction']);
+    $order = [$column . ' ' . $direction];
+
+    if ($sorting['sort'] === 'first_name') {
+        $order[] = 'contacts.last_name ASC';
+    } elseif ($sorting['sort'] === 'last_name') {
+        $order[] = 'contacts.first_name ASC';
+    } else {
+        $order[] = 'contacts.first_name ASC';
+        $order[] = 'contacts.last_name ASC';
+    }
+
+    $order[] = 'contacts.id ASC';
+
+    return implode(', ', $order);
+}
+
 function contactFormValues(array $source): array
 {
     $values = [];

@@ -115,6 +115,32 @@
     background: linear-gradient(90deg, #e8eef8, #f0f4fa);
 }
 
+.contact-sort-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    color: inherit;
+    text-decoration: none;
+}
+
+.contact-sort-link:hover {
+    color: #203b6c;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+}
+
+.contact-sort-link:focus-visible {
+    border-radius: 3px;
+    outline: 3px solid #73aaa9;
+    outline-offset: 3px;
+}
+
+.contact-sort-indicator {
+    color: #203b6c;
+    font-size: 14px;
+    font-weight: 800;
+}
+
 .contact-results tbody tr:nth-child(even) {
     background: #f8faff;
 }

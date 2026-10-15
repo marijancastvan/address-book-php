@@ -11,42 +11,35 @@ if (!isAuthenticated()) {
     redirectTo('/login.php');
 }
 
-if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+if (($_SERVER['REQUEST_METHOD'] ?? '') !== 'POST') {
     http_response_code(405);
     header('Allow: POST');
     exit('Method Not Allowed');
 }
+
+$returnContext = contactListReturnContext($_GET);
 if (!isValidCsrfToken($_POST['csrf_token'] ?? null)) {
-    redirectTo('/contacts.php?error=csrf');
+    redirectTo('/contacts.php?' . http_build_query(['error' => 'csrf'] + $returnContext));
 }
 
 $contactId = filter_var($_POST['contact_id'] ?? null, FILTER_VALIDATE_INT, [
     'options' => ['min_range' => 1],
 ]);
-
 if ($contactId === false || $contactId === null) {
-    redirectTo('/contacts.php?error=not_found');
+    redirectTo('/contacts.php?' . http_build_query(['error' => 'not_found'] + $returnContext));
 }
 
 try {
-    $pdo = db();
-    $pdo->beginTransaction();
-    lockUserForHistoryMutation($pdo, (int) currentUserId());
-    $statement = $pdo->prepare(
-        'DELETE FROM contacts WHERE id = :contact_id AND user_id = :user_id'
-    );
-    $statement->execute([
-        'contact_id' => $contactId,
-        'user_id' => currentUserId(),
-    ]);
-    $pdo->commit();
+    $result = transitionContactDeletedState(db(), (int) currentUserId(), $contactId, true);
+    if ($result === 'not_found') {
+        redirectTo('/contacts.php?' . http_build_query(['error' => 'not_found'] + $returnContext));
+    }
 
-    redirectTo($statement->rowCount() === 1
-        ? '/contacts.php?success=deleted'
-        : '/contacts.php?error=not_found');
+    redirectTo('/contacts.php?' . http_build_query([
+        'success' => $result === 'changed' ? 'deleted' : 'already_deleted',
+    ] + $returnContext));
 } catch (Throwable $exception) {
-    if (isset($pdo) && $pdo->inTransaction()) { $pdo->rollBack(); }
-    error_log('Contact deletion failed.');
+    error_log('Contact soft deletion failed.');
     http_response_code(500);
-    exit('Kontakt trenutno nije moguće obrisati. Pokušajte ponovo kasnije.');
+    exit('Kontakt trenutno nije moguće premestiti u obrisane kontakte. Pokušajte ponovo kasnije.');
 }

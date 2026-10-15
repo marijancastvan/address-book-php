@@ -61,13 +61,14 @@ $context = [];
 foreach (['search', 'city_id', 'tag_id', 'date_from', 'date_to'] as $key) {
     if (isset($_GET[$key]) && is_scalar($_GET[$key]) && (string) $_GET[$key] !== '') $context[$key] = (string) $_GET[$key];
 }
+if (($_GET['view'] ?? '') === 'deleted') $context['view'] = 'deleted';
 $context += normalizeContactSorting($_GET['sort'] ?? null, $_GET['direction'] ?? null);
 $sourcePage = filter_var($_GET['page'] ?? 1, FILTER_VALIDATE_INT);
 $sourcePage = is_int($sourcePage) && $sourcePage > 0 ? $sourcePage : 1;
 $backUrl = $baseUrl . '/contacts.php?' . http_build_query($context + ['page' => $sourcePage]);
 $utcTimezone = new DateTimeZone('UTC');
 $historyTimezone = new DateTimeZone('Europe/Belgrade');
-$actionLabels = ['contact_updated' => 'Izmena kontakta', 'tag_renamed' => 'Preimenovanje taga', 'tag_deleted' => 'Brisanje taga', 'city_renamed' => 'Preimenovanje grada'];
+$actionLabels = ['contact_updated' => 'Izmena kontakta', 'contact_deleted' => 'Brisanje kontakta', 'contact_restored' => 'Vraćanje kontakta', 'tag_renamed' => 'Preimenovanje taga', 'tag_deleted' => 'Brisanje taga', 'city_renamed' => 'Preimenovanje grada'];
 $formatValue = static function (string $value): string {
     $decoded = json_decode($value, true);
     if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {

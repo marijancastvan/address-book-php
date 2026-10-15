@@ -34,6 +34,7 @@ function lockContactHistorySnapshot(PDO $pdo, int $userId, int $contactId): ?arr
          FROM contacts
          INNER JOIN cities ON cities.id = contacts.city_id
          WHERE contacts.id = :contact_id AND contacts.user_id = :user_id
+           AND contacts.deleted_at IS NULL
          FOR UPDATE'
     );
     $statement->execute(['contact_id' => $contactId, 'user_id' => $userId]);
@@ -53,6 +54,60 @@ function lockContactHistorySnapshot(PDO $pdo, int $userId, int $contactId): ?arr
         'city' => ['id' => (int) $contact['city_id'], 'name' => (string) $contact['city_name']],
         'tags' => sortContactTagSnapshots($tagsByContact[(int) $contact['id']] ?? []),
     ];
+}
+
+/** Soft-delete or restore one owned contact and record the transition atomically. */
+function transitionContactDeletedState(PDO $pdo, int $userId, int $contactId, bool $delete): string
+{
+    $pdo->beginTransaction();
+
+    try {
+        $actorEmail = lockUserForHistoryMutation($pdo, $userId);
+        $contactQuery = $pdo->prepare(
+            'SELECT deleted_at FROM contacts WHERE id = :contact_id AND user_id = :user_id FOR UPDATE'
+        );
+        $contactQuery->execute(['contact_id' => $contactId, 'user_id' => $userId]);
+        $contact = $contactQuery->fetch(PDO::FETCH_ASSOC);
+        if ($contact === false) {
+            $pdo->rollBack();
+            return 'not_found';
+        }
+
+        $isDeleted = $contact['deleted_at'] !== null;
+        if ($isDeleted === $delete) {
+            $pdo->rollBack();
+            return 'unchanged';
+        }
+
+        $updateSql = $delete
+            ? 'UPDATE contacts SET deleted_at = UTC_TIMESTAMP() WHERE id = :contact_id AND user_id = :user_id AND deleted_at IS NULL'
+            : 'UPDATE contacts SET deleted_at = NULL WHERE id = :contact_id AND user_id = :user_id AND deleted_at IS NOT NULL';
+        $update = $pdo->prepare($updateSql);
+        $update->execute(['contact_id' => $contactId, 'user_id' => $userId]);
+        if ($update->rowCount() !== 1) {
+            throw new RuntimeException('The contact status changed during the operation.');
+        }
+
+        $oldStatus = $delete ? 'Aktivan' : 'Obrisan';
+        $newStatus = $delete ? 'Obrisan' : 'Aktivan';
+        recordContactHistoryEvent(
+            $pdo,
+            $userId,
+            $contactId,
+            $userId,
+            $actorEmail,
+            $delete ? 'contact_deleted' : 'contact_restored',
+            ['status' => ['label' => 'Status kontakta', 'old' => $oldStatus, 'new' => $newStatus]],
+        );
+
+        $pdo->commit();
+        return 'changed';
+    } catch (Throwable $exception) {
+        if ($pdo->inTransaction()) {
+            $pdo->rollBack();
+        }
+        throw $exception;
+    }
 }
 
 /** @param array<int, array{id: int, name: string}> $tags

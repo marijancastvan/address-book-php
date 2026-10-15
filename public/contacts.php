@@ -20,6 +20,7 @@ if (!isAuthenticated()) {
 
 $userId = currentUserId();
 $isJsonRequest = ($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'GET' && ($_GET['format'] ?? '') === 'json';
+$showDeleted = ($_GET['view'] ?? '') === 'deleted';
 $searchInput = $_GET['search'] ?? '';
 $searchTerm = is_scalar($searchInput) ? trim((string) $searchInput) : '';
 $rawCityId = $_GET['city_id'] ?? '';
@@ -105,7 +106,7 @@ try {
         exit;
     }
 
-    $whereSql = ' WHERE contacts.user_id = :user_id';
+    $whereSql = ' WHERE contacts.user_id = :user_id AND contacts.deleted_at ' . ($showDeleted ? 'IS NOT NULL' : 'IS NULL');
     $parameters = ['user_id' => $userId];
 
     if ($searchTerm !== '') {
@@ -197,6 +198,7 @@ try {
             'contacts' => $jsonContacts,
             'filters' => $filters,
             'sorting' => $sorting,
+            'view' => $showDeleted ? 'deleted' : 'active',
             'pagination' => [
                 'current_page' => $page,
                 'page_size' => $pageSize,
@@ -243,7 +245,7 @@ if (($formState['mode'] ?? '') === 'edit') {
     $editSelectedTagIds = selectedContactTagIds($formState['tag_ids'] ?? []);
     $editErrors = is_array($formState['errors'] ?? null) ? $formState['errors'] : [];
 }
-if ($openEditId !== false && $openEditId !== null) {
+if (!$showDeleted && $openEditId !== false && $openEditId !== null) {
     foreach ($contacts as $listedContact) {
         if ((int) $listedContact['id'] === $openEditId) {
             $editContact = $listedContact;
@@ -263,18 +265,24 @@ if ($openEditId !== false && $openEditId !== null) {
 }
 
 $successMessage = contactSuccessMessage();
-$errorMessage = ($_GET['error'] ?? '') === 'not_found' || ($openEditId && $editContact === null)
-    ? 'Kontakt nije pronađen ili nemate dozvolu za pristup.'
-    : null;
+$errorMessage = match ($_GET['error'] ?? '') {
+    'not_found' => 'Kontakt nije pronađen ili nemate dozvolu za pristup.',
+    'csrf' => 'Forma je istekla ili nije validna. Osvežite stranicu i pokušajte ponovo.',
+    default => ($openEditId && $editContact === null) ? 'Kontakt nije pronađen ili nemate dozvolu za pristup.' : null,
+};
 $activeNavigation = 'contacts';
 $baseUrl = rtrim($config['app']['base_url'], '/');
+$viewQuery = $showDeleted ? ['view' => 'deleted'] : [];
+$listContext = $filters + $sortQuery + ['page' => $page] + $viewQuery;
+$listContextQuery = http_build_query($listContext);
+$switchViewQuery = http_build_query($filters + $sortQuery + ['page' => 1] + ($showDeleted ? [] : ['view' => 'deleted']));
 ?>
 <!doctype html>
 <html lang="sr">
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Kontakti | Address Book</title>
+    <title><?= $showDeleted ? 'Obrisani kontakti' : 'Kontakti' ?> | Address Book</title>
     <link rel="stylesheet" href="<?= escapeHtml($baseUrl) ?>/assets/css/app.css">
     <link rel="stylesheet" href="<?= escapeHtml($baseUrl) ?>/assets/css/contacts.css">
     <link rel="stylesheet" href="<?= escapeHtml($baseUrl) ?>/assets/css/dialogs.css">
@@ -297,10 +305,13 @@ $baseUrl = rtrim($config['app']['base_url'], '/');
 
         <main class="main-content">
             <header class="page-header">
-                <div><p class="eyebrow">ADRESAR</p><h1>Kontakti</h1></div>
+                <div><p class="eyebrow">ADRESAR</p><h1><?= $showDeleted ? 'Obrisani kontakti' : 'Kontakti' ?></h1></div>
                 <div class="contacts-header-actions">
-                    <button class="button button-primary" type="button" data-dialog-open="contact-create-dialog">Dodaj kontakt</button>
-                    <button class="button button-secondary" type="button" data-dialog-open="contact-generator-dialog">KREIRAJ DUMMY</button>
+                    <?php if (!$showDeleted): ?>
+                        <button class="button button-primary" type="button" data-dialog-open="contact-create-dialog">Dodaj kontakt</button>
+                        <button class="button button-secondary" type="button" data-dialog-open="contact-generator-dialog">KREIRAJ DUMMY</button>
+                    <?php endif; ?>
+                    <a class="button <?= $showDeleted ? 'button-primary' : 'button-switch-deleted' ?>" href="<?= escapeHtml($baseUrl) ?>/contacts.php?<?= escapeHtml($switchViewQuery) ?>"><?= $showDeleted ? 'Aktivni kontakti' : 'Obrisani kontakti' ?></a>
                 </div>
             </header>
 
@@ -312,6 +323,7 @@ $baseUrl = rtrim($config['app']['base_url'], '/');
             <form class="contact-search" method="get" action="<?= escapeHtml($baseUrl) ?>/contacts.php" role="search">
                 <input type="hidden" name="sort" value="<?= escapeHtml($sorting['sort']) ?>">
                 <input type="hidden" name="direction" value="<?= escapeHtml($sorting['direction']) ?>">
+                <?php if ($showDeleted): ?><input type="hidden" name="view" value="deleted"><?php endif; ?>
                 <div class="search-field">
                     <label for="contact-search">Pretraži kontakte</label>
                     <input id="contact-search" name="search" type="search" value="<?= escapeHtml($searchTerm) ?>" placeholder="Ime, prezime, telefon ili email..." autocomplete="off" aria-controls="contact-results">
@@ -346,7 +358,7 @@ $baseUrl = rtrim($config['app']['base_url'], '/');
                 </div>
                 <div class="contact-filter-actions">
                     <button class="button button-primary" type="submit">Primeni filtere</button>
-                    <a class="button button-secondary" href="<?= escapeHtml($baseUrl) ?>/contacts.php?<?= escapeHtml(http_build_query($sortQuery)) ?>">Poništi filtere</a>
+                    <a class="button button-secondary" href="<?= escapeHtml($baseUrl) ?>/contacts.php?<?= escapeHtml(http_build_query($sortQuery + $viewQuery)) ?>">Poništi filtere</a>
                 </div>
             </form>
             <p class="search-status" id="contact-search-status" role="status" aria-live="polite"></p>
@@ -361,9 +373,14 @@ $baseUrl = rtrim($config['app']['base_url'], '/');
                 </section>
             <?php elseif ($contacts === []): ?>
                 <section class="empty-state">
-                    <h2>Još nema kontakata</h2>
-                    <p>Trenutno nemate nijedan kontakt.</p>
-                    <button class="button button-primary" type="button" data-dialog-open="contact-create-dialog">Dodaj kontakt</button>
+                    <?php if ($showDeleted): ?>
+                        <h2>Nema obrisanih kontakata</h2>
+                        <p>Obrisani kontakti će se pojaviti ovde i moći ćete da ih vratite.</p>
+                    <?php else: ?>
+                        <h2>Još nema kontakata</h2>
+                        <p>Trenutno nemate nijedan kontakt.</p>
+                        <button class="button button-primary" type="button" data-dialog-open="contact-create-dialog">Dodaj kontakt</button>
+                    <?php endif; ?>
                 </section>
             <?php else: ?>
                 <div class="table-wrap">
@@ -373,7 +390,7 @@ $baseUrl = rtrim($config['app']['base_url'], '/');
                                 <?php
                                 $isActiveSort = $sorting['sort'] === $sortKey;
                                 $nextSortDirection = $isActiveSort && $sorting['direction'] === 'asc' ? 'desc' : 'asc';
-                                $sortLink = $filters + ['sort' => $sortKey, 'direction' => $nextSortDirection, 'page' => 1];
+                                $sortLink = $filters + ['sort' => $sortKey, 'direction' => $nextSortDirection, 'page' => 1] + $viewQuery;
                                 ?>
                                 <th scope="col" aria-sort="<?= $isActiveSort ? ($sorting['direction'] === 'asc' ? 'ascending' : 'descending') : 'none' ?>">
                                     <a class="contact-sort-link" href="<?= escapeHtml($baseUrl) ?>/contacts.php?<?= escapeHtml(http_build_query($sortLink)) ?>" data-contact-sort="<?= escapeHtml($sortKey) ?>" data-sort-direction="<?= escapeHtml($nextSortDirection) ?>">
@@ -396,9 +413,13 @@ $baseUrl = rtrim($config['app']['base_url'], '/');
                                         <?php foreach ($contact['tags'] as $tag): ?><span class="contact-tag"><?= escapeHtml((string) $tag['name']) ?></span><?php endforeach; ?>
                                     </div></td>
                                     <td data-label="Akcije"><div class="row-actions contact-row-actions">
-                                        <a class="button button-small button-history" href="<?= escapeHtml($baseUrl) ?>/contact-history.php?<?= escapeHtml(http_build_query(['id' => (int) $contact['id']] + $filters + $sortQuery + ['page' => $page])) ?>">Istorija</a>
-                                        <a class="button button-small button-secondary" href="<?= escapeHtml($baseUrl) ?>/contacts.php?<?= escapeHtml(http_build_query(['edit_id' => (int) $contact['id']] + $filters + $sortQuery + ['page' => $page])) ?>">Izmeni</a>
-                                        <button class="button button-small button-danger" type="button" data-confirm-open="contact-delete-dialog" data-delete-id="<?= (int) $contact['id'] ?>" data-delete-label="<?= escapeHtml($contact['first_name'] . ' ' . $contact['last_name']) ?>">Izbriši</button>
+                                        <a class="button button-small button-history" href="<?= escapeHtml($baseUrl) ?>/contact-history.php?<?= escapeHtml(http_build_query(['id' => (int) $contact['id']] + $filters + $sortQuery + ['page' => $page] + $viewQuery)) ?>">Istorija</a>
+                                        <?php if ($showDeleted): ?>
+                                            <button class="button button-small button-primary" type="button" data-confirm-open="contact-restore-dialog" data-contact-action="restore" data-delete-id="<?= (int) $contact['id'] ?>">Vrati kontakt</button>
+                                        <?php else: ?>
+                                            <a class="button button-small button-secondary" href="<?= escapeHtml($baseUrl) ?>/contacts.php?<?= escapeHtml(http_build_query(['edit_id' => (int) $contact['id']] + $filters + $sortQuery + ['page' => $page])) ?>">Izmeni</a>
+                                            <button class="button button-small button-danger" type="button" data-confirm-open="contact-delete-dialog" data-contact-action="delete" data-delete-id="<?= (int) $contact['id'] ?>" data-delete-label="<?= escapeHtml($contact['first_name'] . ' ' . $contact['last_name']) ?>">Izbriši</button>
+                                        <?php endif; ?>
                                     </div></td>
                                 </tr>
                             <?php endforeach; ?>
@@ -409,7 +430,7 @@ $baseUrl = rtrim($config['app']['base_url'], '/');
             </div>
             <nav class="contacts-pagination" id="contacts-pagination" aria-label="Paginacija kontakata" <?= $totalPages <= 1 ? 'hidden' : '' ?>>
                 <?php if ($page > 1): ?>
-                    <a class="pagination-link" data-page="<?= $page - 1 ?>" href="<?= escapeHtml($baseUrl) ?>/contacts.php?<?= escapeHtml(http_build_query($filters + $sortQuery + ['page' => $page - 1])) ?>" rel="prev">Prethodna</a>
+                    <a class="pagination-link" data-page="<?= $page - 1 ?>" href="<?= escapeHtml($baseUrl) ?>/contacts.php?<?= escapeHtml(http_build_query($filters + $sortQuery + ['page' => $page - 1] + $viewQuery)) ?>" rel="prev">Prethodna</a>
                 <?php else: ?>
                     <span class="pagination-link is-disabled" aria-disabled="true">Prethodna</span>
                 <?php endif; ?>
@@ -419,7 +440,7 @@ $baseUrl = rtrim($config['app']['base_url'], '/');
                 $endPage = min($totalPages, $page + 2);
                 if ($startPage > 1):
                 ?>
-                    <a class="pagination-link" data-page="1" href="<?= escapeHtml($baseUrl) ?>/contacts.php?<?= escapeHtml(http_build_query($filters + $sortQuery + ['page' => 1])) ?>">1</a>
+                    <a class="pagination-link" data-page="1" href="<?= escapeHtml($baseUrl) ?>/contacts.php?<?= escapeHtml(http_build_query($filters + $sortQuery + ['page' => 1] + $viewQuery)) ?>">1</a>
                     <?php if ($startPage > 2): ?><span class="pagination-ellipsis" aria-hidden="true">…</span><?php endif; ?>
                 <?php endif; ?>
 
@@ -427,17 +448,17 @@ $baseUrl = rtrim($config['app']['base_url'], '/');
                     <?php if ($pageNumber === $page): ?>
                         <span class="pagination-link is-current" aria-current="page"><?= $pageNumber ?></span>
                     <?php else: ?>
-                        <a class="pagination-link" data-page="<?= $pageNumber ?>" href="<?= escapeHtml($baseUrl) ?>/contacts.php?<?= escapeHtml(http_build_query($filters + $sortQuery + ['page' => $pageNumber])) ?>"><?= $pageNumber ?></a>
+                        <a class="pagination-link" data-page="<?= $pageNumber ?>" href="<?= escapeHtml($baseUrl) ?>/contacts.php?<?= escapeHtml(http_build_query($filters + $sortQuery + ['page' => $pageNumber] + $viewQuery)) ?>"><?= $pageNumber ?></a>
                     <?php endif; ?>
                 <?php endfor; ?>
 
                 <?php if ($endPage < $totalPages): ?>
                     <?php if ($endPage < $totalPages - 1): ?><span class="pagination-ellipsis" aria-hidden="true">…</span><?php endif; ?>
-                    <a class="pagination-link" data-page="<?= $totalPages ?>" href="<?= escapeHtml($baseUrl) ?>/contacts.php?<?= escapeHtml(http_build_query($filters + $sortQuery + ['page' => $totalPages])) ?>"><?= $totalPages ?></a>
+                    <a class="pagination-link" data-page="<?= $totalPages ?>" href="<?= escapeHtml($baseUrl) ?>/contacts.php?<?= escapeHtml(http_build_query($filters + $sortQuery + ['page' => $totalPages] + $viewQuery)) ?>"><?= $totalPages ?></a>
                 <?php endif; ?>
 
                 <?php if ($page < $totalPages): ?>
-                    <a class="pagination-link" data-page="<?= $page + 1 ?>" href="<?= escapeHtml($baseUrl) ?>/contacts.php?<?= escapeHtml(http_build_query($filters + $sortQuery + ['page' => $page + 1])) ?>" rel="next">Sledeća</a>
+                    <a class="pagination-link" data-page="<?= $page + 1 ?>" href="<?= escapeHtml($baseUrl) ?>/contacts.php?<?= escapeHtml(http_build_query($filters + $sortQuery + ['page' => $page + 1] + $viewQuery)) ?>" rel="next">Sledeća</a>
                 <?php else: ?>
                     <span class="pagination-link is-disabled" aria-disabled="true">Sledeća</span>
                 <?php endif; ?>
@@ -445,6 +466,7 @@ $baseUrl = rtrim($config['app']['base_url'], '/');
         </main>
     </div>
 
+    <?php if (!$showDeleted): ?>
     <?php
     $dialogId = 'contact-create-dialog';
     $formIdPrefix = 'contact-create';
@@ -500,14 +522,14 @@ $baseUrl = rtrim($config['app']['base_url'], '/');
             </form>
         </section>
     </dialog>
-    <dialog class="app-dialog" id="contact-delete-dialog" aria-labelledby="contact-delete-title" data-confirm-entity="kontakt">
+    <dialog class="app-dialog" id="contact-delete-dialog" aria-labelledby="contact-delete-title" data-confirm-static-message="true">
         <section class="dialog-panel">
             <header class="dialog-header">
                 <h2 id="contact-delete-title">Brisanje kontakta</h2>
                 <button class="dialog-close" type="button" data-dialog-close aria-label="Zatvori dijalog">&times;</button>
             </header>
-            <p data-confirm-message>Da li ste sigurni da želite da obrišete ovaj kontakt?</p>
-            <form method="post" action="<?= escapeHtml($baseUrl) ?>/contact-delete.php" class="form-actions" data-pending-submit>
+            <p data-confirm-message>Kontakt će biti premešten u „Obrisane kontakte“ i može biti vraćen kasnije.</p>
+            <form method="post" action="<?= escapeHtml($baseUrl) ?>/contact-delete.php?<?= escapeHtml($listContextQuery) ?>" class="form-actions" data-pending-submit>
                 <input type="hidden" name="contact_id" value="" data-confirm-id>
                 <input type="hidden" name="csrf_token" value="<?= escapeHtml(csrfToken()) ?>">
                 <button class="button button-secondary" type="button" data-dialog-close>Otkaži</button>
@@ -548,5 +570,22 @@ $baseUrl = rtrim($config['app']['base_url'], '/');
             </form>
         </section>
     </dialog>
+    <?php else: ?>
+    <dialog class="app-dialog" id="contact-restore-dialog" aria-labelledby="contact-restore-title" data-confirm-static-message="true">
+        <section class="dialog-panel">
+            <header class="dialog-header">
+                <h2 id="contact-restore-title">Vrati kontakt</h2>
+                <button class="dialog-close" type="button" data-dialog-close aria-label="Zatvori dijalog">&times;</button>
+            </header>
+            <p data-confirm-message>Kontakt će biti vraćen u aktivne kontakte.</p>
+            <form method="post" action="<?= escapeHtml($baseUrl) ?>/contact-restore.php?<?= escapeHtml($listContextQuery) ?>" class="form-actions" data-pending-submit>
+                <input type="hidden" name="contact_id" value="" data-confirm-id>
+                <input type="hidden" name="csrf_token" value="<?= escapeHtml(csrfToken()) ?>">
+                <button class="button button-secondary" type="button" data-dialog-close>Otkaži</button>
+                <button class="button button-primary" type="submit" data-pending-label="Vraćanje...">Vrati kontakt</button>
+            </form>
+        </section>
+    </dialog>
+    <?php endif; ?>
 </body>
 </html>

@@ -120,7 +120,7 @@ if ($openEditId !== false && $openEditId !== null) {
 $successMessage = citySuccessMessage();
 $errorMessage = match ($_GET['error'] ?? '') {
     'not_found' => 'Grad nije pronađen ili nemate dozvolu za pristup.',
-    'has_contacts' => 'Nije moguće obrisati grad koji je povezan sa kontaktima.',
+    'has_contacts' => 'Grad je povezan sa jednim ili više kontakata, uključujući obrisane kontakte, pa ne može biti obrisan.',
     'csrf' => 'Forma je istekla ili nije validna. Osvežite stranicu i pokušajte ponovo.',
     default => ($openEditId && $editCity === null) ? 'Grad nije pronađen ili nemate dozvolu za pristup.' : null,
 };

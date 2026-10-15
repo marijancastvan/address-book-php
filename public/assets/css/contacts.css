@@ -74,6 +74,23 @@
     padding-inline: 18px;
 }
 
+.contacts-header-actions > .button-switch-deleted {
+    border: 1px solid #d9a5aa;
+    color: #8d3038;
+    background: #fff6f6;
+}
+
+.contacts-header-actions > .button-switch-deleted:hover:not(:disabled) {
+    border-color: #c98289;
+    color: #76252d;
+    background: #ffeded;
+}
+
+.contacts-header-actions > .button-switch-deleted:focus-visible {
+    outline: 3px solid #c98289;
+    outline-offset: 3px;
+}
+
 .search-status:empty {
     display: none;
 }

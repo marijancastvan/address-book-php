@@ -49,6 +49,23 @@ function contactOrderBySql(array $sorting): string
     return implode(', ', $order);
 }
 
+/** Keep list context when delete/restore POST actions return to contacts.php. */
+function contactListReturnContext(array $source): array
+{
+    $context = [];
+    foreach (['search', 'city_id', 'tag_id', 'date_from', 'date_to'] as $key) {
+        if (isset($source[$key]) && is_scalar($source[$key])) {
+            $context[$key] = (string) $source[$key];
+        }
+    }
+
+    $pageInput = filter_var($source['page'] ?? 1, FILTER_VALIDATE_INT);
+    $context += normalizeContactSorting($source['sort'] ?? null, $source['direction'] ?? null);
+    $context['page'] = is_int($pageInput) && $pageInput > 0 ? $pageInput : 1;
+
+    return $context;
+}
+
 function contactFormValues(array $source): array
 {
     $values = [];
@@ -306,7 +323,10 @@ function contactSuccessMessage(): ?string
     return match ($_GET['success'] ?? '') {
         'created' => 'Kontakt je uspešno dodat.',
         'updated' => 'Kontakt je uspešno izmenjen.',
-        'deleted' => 'Kontakt je uspešno obrisan.',
+        'deleted' => 'Kontakt je premešten u obrisane kontakte. Možete ga vratiti u bilo kom trenutku.',
+        'already_deleted' => 'Kontakt se već nalazi u obrisanim kontaktima.',
+        'restored' => 'Kontakt je vraćen u aktivne kontakte.',
+        'already_active' => 'Kontakt je već aktivan.',
         default => null,
     };
 }

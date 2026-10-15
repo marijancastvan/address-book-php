@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 require_once dirname(__DIR__) . '/app/bootstrap.php';
 require_once dirname(__DIR__) . '/app/auth.php';
+require_once dirname(__DIR__) . '/app/contact-helpers.php';
 require_once dirname(__DIR__) . '/app/history-helpers.php';
 
 $sendJson = static function (int $statusCode, array $payload): never {
@@ -78,18 +79,24 @@ try {
     }
 
     $insert = $pdo->prepare(
-        'INSERT INTO contacts (user_id, first_name, last_name, phone, email, city_id)
-         VALUES (:user_id, :first_name, :last_name, :phone, :email, :city_id)'
+        'INSERT INTO contacts
+            (user_id, first_name, last_name, phone, email, phone_normalized, email_normalized, city_id, updated_at)
+         VALUES
+            (:user_id, :first_name, :last_name, :phone, :email, :phone_normalized, :email_normalized, :city_id, UTC_TIMESTAMP())'
     );
 
     for ($index = 0; $index < $count; $index++) {
         [$firstName, $lastName] = $namePairs[$index];
+        $phone = '+3816' . random_int(10_000_000, 99_999_999);
+        $email = 'test_' . bin2hex(random_bytes(12)) . '@example.com';
         $insert->execute([
             'user_id' => $userId,
             'first_name' => $firstName,
             'last_name' => $lastName,
-            'phone' => '+3816' . random_int(10_000_000, 99_999_999),
-            'email' => 'test_' . bin2hex(random_bytes(12)) . '@example.com',
+            'phone' => $phone,
+            'email' => $email,
+            'phone_normalized' => normalizeContactPhone($phone),
+            'email_normalized' => normalizeContactEmail($email),
             'city_id' => $cityIds[random_int(0, count($cityIds) - 1)],
         ]);
     }

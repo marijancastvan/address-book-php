@@ -91,6 +91,102 @@
     outline-offset: 3px;
 }
 
+.contacts-header-actions > .button-duplicates {
+    border: 1px solid #d6b44c;
+    color: #705500;
+    background: #fff9e6;
+}
+
+.contacts-header-actions > .button-duplicates:hover:not(:disabled) {
+    border-color: #c49c22;
+    color: #5c4600;
+    background: #fff1bf;
+}
+
+.contacts-header-actions > .button-duplicates:focus-visible {
+    outline: 3px solid #d6b44c;
+    outline-offset: 3px;
+}
+
+.contact-duplicates-page {
+    display: grid;
+    align-content: start;
+    gap: 16px;
+}
+
+.duplicates-back-link {
+    width: fit-content;
+    border-color: #1a2b56;
+    color: #fff;
+    background: #1a2b56;
+    text-decoration: none;
+}
+
+.duplicates-back-link:hover {
+    border-color: #111d3c;
+    color: #fff;
+    background: #111d3c;
+}
+
+.duplicates-back-link:focus-visible {
+    outline: 3px solid #60a5fa;
+    outline-offset: 2px;
+}
+
+.contact-duplicates-page .page-header .eyebrow {
+    color: #405e88;
+}
+
+.contact-duplicates-page .page-header h1 {
+    color: #203b6c;
+}
+
+.duplicates-explanation {
+    margin: 0;
+    padding: 14px 16px;
+    border: 1px solid #d8e2f0;
+    border-radius: 12px;
+    color: #354e76;
+    background: #f4f7fc;
+}
+
+.contact-duplicates-page .table-wrap {
+    border-color: #d2ddec;
+    box-shadow: 0 10px 28px rgb(32 59 108 / 7%);
+}
+
+.contact-duplicates-table th {
+    border-bottom: 2px solid #d2ddec;
+    color: #354e76;
+    background: linear-gradient(90deg, #e8eef8, #f0f4fa);
+}
+
+.contact-duplicates-table tbody tr:nth-child(even) {
+    background: #f8faff;
+}
+
+.contact-duplicates-table tbody tr:hover {
+    background: #edf3fc;
+}
+
+.contact-duplicates-table td > span:not(.duplicate-reason) {
+    display: block;
+    margin-top: 3px;
+    color: #526174;
+    overflow-wrap: anywhere;
+}
+
+.duplicate-reason {
+    display: inline-block;
+    border: 1px solid #c8d8ee;
+    border-radius: 999px;
+    padding: 5px 10px;
+    color: #354e76;
+    background: #e8eef8;
+    font-size: 13px;
+    font-weight: 650;
+}
+
 .search-status:empty {
     display: none;
 }

@@ -78,6 +78,52 @@ function contactFormValues(array $source): array
     return $values;
 }
 
+/** Return a conservative comparison key, or null when the phone format is unsupported. */
+function normalizeContactPhone(string $phone): ?string
+{
+    $phone = trim($phone);
+    if ($phone === '' || preg_match('/\A\+?[0-9](?:[0-9 ().-]*[0-9])?\z/D', $phone) !== 1) {
+        return null;
+    }
+
+    $hasPlus = str_starts_with($phone, '+');
+    $digits = str_replace([' ', '(', ')', '.', '-'], '', $hasPlus ? substr($phone, 1) : $phone);
+    if ($digits === '' || strlen($digits) > 17) {
+        return null;
+    }
+
+    if ($hasPlus) {
+        if (strlen($digits) < 3 || strlen($digits) > 15 || $digits[0] === '0') {
+            return null;
+        }
+        return 'I:' . $digits;
+    }
+
+    if (str_starts_with($digits, '00')) {
+        $internationalDigits = substr($digits, 2);
+        if (strlen($internationalDigits) < 3 || $internationalDigits[0] === '0' || strlen($internationalDigits) > 15) {
+            return null;
+        }
+        return 'I:' . $internationalDigits;
+    }
+
+    return strlen($digits) >= 3 && strlen($digits) <= 15 ? 'L:' . $digits : null;
+}
+
+/** Compare valid ASCII email addresses case-insensitively without provider-specific rewriting. */
+function normalizeContactEmail(string $email): ?string
+{
+    $email = trim($email);
+    if ($email === ''
+        || preg_match('/\A[\x00-\x7F]+\z/D', $email) !== 1
+        || filter_var($email, FILTER_VALIDATE_EMAIL) === false
+    ) {
+        return null;
+    }
+
+    return strtolower($email);
+}
+
 function contactCharacterLength(string $value): int
 {
     $count = preg_match_all('/./us', $value);

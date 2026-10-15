@@ -45,8 +45,10 @@ if (!isValidCsrfToken($_POST['csrf_token'] ?? null)) {
 
         if ($errors === []) {
             $statement = $pdo->prepare(
-                'INSERT INTO contacts (user_id, first_name, last_name, phone, email, city_id)
-                 VALUES (:user_id, :first_name, :last_name, :phone, :email, :city_id)'
+                'INSERT INTO contacts
+                    (user_id, first_name, last_name, phone, email, phone_normalized, email_normalized, city_id, updated_at)
+                 VALUES
+                    (:user_id, :first_name, :last_name, :phone, :email, :phone_normalized, :email_normalized, :city_id, UTC_TIMESTAMP())'
             );
             $statement->execute([
                 'user_id' => $userId,
@@ -54,6 +56,8 @@ if (!isValidCsrfToken($_POST['csrf_token'] ?? null)) {
                 'last_name' => $formValues['last_name'],
                 'phone' => $formValues['phone'],
                 'email' => $formValues['email'],
+                'phone_normalized' => normalizeContactPhone($formValues['phone']),
+                'email_normalized' => normalizeContactEmail($formValues['email']),
                 'city_id' => $cityId,
             ]);
             $contactId = (int) $pdo->lastInsertId();

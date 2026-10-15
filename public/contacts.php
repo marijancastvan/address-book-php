@@ -310,6 +310,7 @@ $switchViewQuery = http_build_query($filters + $sortQuery + ['page' => 1] + ($sh
                     <?php if (!$showDeleted): ?>
                         <button class="button button-primary" type="button" data-dialog-open="contact-create-dialog">Dodaj kontakt</button>
                         <button class="button button-secondary" type="button" data-dialog-open="contact-generator-dialog">KREIRAJ DUMMY</button>
+                        <a class="button button-duplicates" href="<?= escapeHtml($baseUrl) ?>/contact-duplicates.php?<?= escapeHtml($listContextQuery) ?>">Duplikati</a>
                     <?php endif; ?>
                     <a class="button <?= $showDeleted ? 'button-primary' : 'button-switch-deleted' ?>" href="<?= escapeHtml($baseUrl) ?>/contacts.php?<?= escapeHtml($switchViewQuery) ?>"><?= $showDeleted ? 'Aktivni kontakti' : 'Obrisani kontakti' ?></a>
                 </div>

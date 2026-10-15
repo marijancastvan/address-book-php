@@ -105,7 +105,9 @@ if (!isValidCsrfToken($_POST['csrf_token'] ?? null)) {
             $update = $pdo->prepare(
                 'UPDATE contacts
                  SET first_name = :first_name, last_name = :last_name, phone = :phone,
-                     email = :email, city_id = :city_id
+                     email = :email, phone_normalized = :phone_normalized,
+                     email_normalized = :email_normalized, city_id = :city_id,
+                     updated_at = UTC_TIMESTAMP()
                  WHERE id = :contact_id AND user_id = :user_id'
             );
             $update->execute([
@@ -113,6 +115,8 @@ if (!isValidCsrfToken($_POST['csrf_token'] ?? null)) {
                 'last_name' => $formValues['last_name'],
                 'phone' => $formValues['phone'],
                 'email' => $formValues['email'],
+                'phone_normalized' => normalizeContactPhone($formValues['phone']),
+                'email_normalized' => normalizeContactEmail($formValues['email']),
                 'city_id' => $cityId,
                 'contact_id' => $contactId,
                 'user_id' => $userId,

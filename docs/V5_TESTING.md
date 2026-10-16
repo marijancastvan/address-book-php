@@ -105,3 +105,30 @@ Spajanje nema novu migraciju. Testirajte u zasebnoj privremenoj lokalnoj bazi sa
 2. Pošaljite POST bez CSRF tokena i sa izmenjenim tokenom. Statusi, tagovi i istorija ne smeju se promeniti.
 3. Na desktopu i uskom telefonu proverite čitljivost izbora i pregleda, odsustvo horizontalnog prelivanja i raspored dugmeta **Spoji**.
 4. Potvrdite da pretraga/filteri, V5.1 sortiranje, paginacija, live search, CRUD, vraćanje i istorija kontakta rade kao pre.
+
+## V5.4 — Komentari kontakata
+
+### Izolovana lokalna priprema
+
+1. Napravite backup pre primene SQL-a. Za test koristite samo novu, privremenu lokalnu bazu i posebnu privremenu kopiju projekta; nikada ne koristite glavnu lokalnu ili hosting bazu.
+2. U praznu privremenu bazu primenite migracije redom `001`–`008`, uključujući `008_create_contact_comments.sql`. Proverite da tabela `contact_comments` ima složene FK veze za vlasnika/kontakt i poreklo, kao i indeks `(user_id, contact_id, created_at, id)`.
+3. Posebnu kopiju projekta usmerite na tu bazu preko njenog lokalnog, Git-ignorisanog `app/config/config.local.php`. Ne menjajte postojeći lokalni config. Pokrenite aplikaciju iz privremene kopije i uklonite bazu, kopiju i test sesije nakon provera.
+
+### Ručni scenariji i očekivanja
+
+1. U početnom i live-search prikazu proverite akciju **Komentari**. Otvorite je sa kontaktom koji ima komentare i sa kontaktom bez komentara. Početni prazan prikaz je kompaktan; stranica zadržava Kontakti sidebar, plavu paletu i malo teget dugme **← Kontakti**.
+2. Dodajte tekst `Pozvan klijent, dogovoreno slanje ponude.` i proverite da autor potiče iz prijavljene sesije, vreme se upisuje kao UTC pa prikazuje u `Europe/Belgrade` formatu `HH:mm dd-mm-yyyy`, a tekst se prikazuje kao običan tekst.
+3. Dodajte komentar sa HTML sadržajem `<script>alert(1)</script>` i više redova. Očekivano: HTML se prikaže kao tekst, skripta se ne izvrši, a prelomi redova ostanu vidljivi.
+4. Pošaljite prazan/razmacima ispunjen sadržaj, 5000 Unicode znakova i 5001 Unicode znak. Prazan i 5001 znak se odbijaju bez INSERT-a; 5000 znakova se prihvata.
+5. Pošaljite zahtev bez CSRF tokena i sa pogrešnim tokenom; nijedan komentar ne nastaje. Odjavljen korisnik se preusmerava na prijavu. Nalog B ne može pročitati niti dodati komentar kontaktu naloga A.
+6. Napravite 26 komentara i proverite 25 po stranici, najnoviji prvi, zatim stabilan ID opadajuće za jednako vreme. Otvorite stranicu 2 i proverite povratni link zadržava search, grad/tag/datum filtere, sort/smer, pregled aktivnih/obrisanih i izvornu stranicu kontakata.
+7. Zabeležite vreme UTC u bazi, uključujući datum zimi i leti, i proverite prikaz u Europe/Belgrade bez vidljive UTC oznake.
+8. Soft-delete kontakt: komentari ostaju čitljivi, forma za dodavanje nije prikazana, a direktan POST odbija novi komentar. Vratite kontakt: isti komentari ostaju, a novi komentar može ponovo da se doda.
+9. Dodajte komentare na oba kontakta, spojite ih i proverite da su sada dostupni na preostalom kontaktu uz originalnog autora, vreme, tekst i oznaku izvornog ID-ja. Istorija spajanja prikazuje broj prenetih komentara.
+10. Spojite taj kontakt ponovo sa trecim kontaktom. Svaki komentar se pojavljuje samo jednom, a `origin_contact_id` ostaje isti. Vracanje ranije uklonjenog kontakta vraca ga kao zaseban kontakt i ne premesta komentare nazad.
+11. U privremenoj bazi izazovite grešku upisa istorije pri spajanju. Očekivani rollback obuhvata kontaktna polja, tagove, status drugog kontakta, prenete komentare i istoriju.
+12. Dodavanje komentara ne menja polja kontakta i ne stvara događaj u istoriji promena.
+
+### Hosting napomene
+
+Hosting backfill starih kontakata za V5.3 i dalje nije izvršen; novi/izmenjeni kontakti dobijaju normalizovane ključeve automatski. Za V5.4, pre objave napravite odobreni hosting backup i primenite migraciju 008 na hosting bazi pre objave koda, jer novi kod očekuje tabelu `contact_comments`. Zatim objavite kod i ručno proverite komentare. Ovo je samo redosled za kasnije odobreno objavljivanje; migraciju ne pokrećite produkciono tokom lokalnog testiranja.

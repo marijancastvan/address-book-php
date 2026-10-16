@@ -247,7 +247,7 @@
             const actions = document.createElement('div');
             actions.className = 'row-actions contact-row-actions';
             const edit = document.createElement('a');
-            edit.className = 'button button-small button-secondary';
+            edit.className = 'button button-small button-secondary button-edit';
             edit.textContent = 'Izmeni';
             edit.href = buildPageUrl(metadata.current_page, filters, sorting, { edit_id: String(contact.id) }, view);
 
@@ -263,6 +263,11 @@
             historyParams.set('id', String(contact.id));
             historyLink.href = `${appBase}/contact-history.php?${historyParams.toString()}`;
 
+            const commentsLink = document.createElement('a');
+            commentsLink.className = 'button button-small button-comments';
+            commentsLink.textContent = 'Komentari';
+            commentsLink.href = `${appBase}/contact-comments.php?${historyParams.toString()}`;
+
             if (view === 'deleted') {
                 const restore = document.createElement('button');
                 restore.className = 'button button-small button-primary';
@@ -271,17 +276,17 @@
                 restore.dataset.confirmOpen = 'contact-restore-dialog';
                 restore.dataset.contactAction = 'restore';
                 restore.dataset.deleteId = String(contact.id);
-                actions.append(historyLink, restore);
+                actions.append(historyLink, commentsLink, restore);
             } else {
                 const remove = document.createElement('button');
-                remove.className = 'button button-small button-danger';
+                remove.className = 'button button-small button-danger button-delete';
                 remove.type = 'button';
                 remove.textContent = 'Izbriši';
                 remove.dataset.confirmOpen = 'contact-delete-dialog';
                 remove.dataset.contactAction = 'delete';
                 remove.dataset.deleteId = String(contact.id);
                 remove.dataset.deleteLabel = `${contact.first_name ?? ''} ${contact.last_name ?? ''}`.trim();
-                actions.append(historyLink, edit, remove);
+                actions.append(historyLink, commentsLink, edit, remove);
             }
             actionsCell.append(actions);
             row.append(actionsCell);

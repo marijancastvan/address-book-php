@@ -199,6 +199,14 @@ function mergeDuplicateContacts(
         }
         $mergedTags = getContactTagSnapshotsForUser($pdo, $userId, $mergedTagIds);
 
+        // Move comment rows in place: origin_contact_id stays immutable, so repeated
+        // merges never clone or lose their original provenance.
+        $commentCountQuery = $pdo->prepare(
+            'SELECT COUNT(*) FROM contact_comments WHERE user_id = :user_id AND contact_id = :contact_id'
+        );
+        $commentCountQuery->execute(['user_id' => $userId, 'contact_id' => $removedId]);
+        $transferredCommentCount = (int) $commentCountQuery->fetchColumn();
+
         $updates = [
             'first_name' => $sourceValues['first_name'],
             'last_name' => $sourceValues['last_name'],
@@ -242,10 +250,29 @@ function mergeDuplicateContacts(
             throw new RuntimeException('The removed contact changed during merge.');
         }
 
+        $transferComments = $pdo->prepare(
+            'UPDATE contact_comments SET contact_id = :kept_contact_id
+             WHERE user_id = :user_id AND contact_id = :removed_contact_id'
+        );
+        $transferComments->execute([
+            'kept_contact_id' => $keepId,
+            'user_id' => $userId,
+            'removed_contact_id' => $removedId,
+        ]);
+        if ($transferComments->rowCount() !== $transferredCommentCount) {
+            throw new RuntimeException('The contact comments changed during merge.');
+        }
+
         $mergeDescription = 'Kontakt ' . $sourceValues['first_name'] . ' ' . $sourceValues['last_name']
             . ' (ID ' . $keepId . ') ostaje aktivan; kontakt ' . $removed['first_name'] . ' '
-            . $removed['last_name'] . ' (ID ' . $removedId . ') prelazi u obrisane kontakte.';
+            . $removed['last_name'] . ' (ID ' . $removedId . ') prelazi u obrisane kontakte. '
+            . 'Broj prenetih komentara: ' . $transferredCommentCount . '.';
         $changes['merge'] = ['label' => 'Spajanje kontakata', 'old' => 'Nije spojeno', 'new' => $mergeDescription];
+        $changes['comments_transferred'] = [
+            'label' => 'Komentari preneti',
+            'old' => '0',
+            'new' => (string) $transferredCommentCount,
+        ];
         recordContactHistoryEvent(
             $pdo,
             $userId,

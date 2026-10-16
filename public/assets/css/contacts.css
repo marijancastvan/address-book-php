@@ -108,10 +108,191 @@
     outline-offset: 3px;
 }
 
+.contacts-header-actions > .button-contact-generator {
+    border-color: #d4c8e7;
+    color: #34415f;
+    background: linear-gradient(110deg, #e7f3ff 0%, #f0e9ff 55%, #fce7f3 100%);
+}
+
+.contacts-header-actions > .button-contact-generator:hover:not(:disabled) {
+    border-color: #b9a8d7;
+    color: #293650;
+    background: linear-gradient(110deg, #d8ebff 0%, #e8dcff 55%, #f9d8e9 100%);
+}
+
+.contacts-header-actions > .button-contact-generator:focus-visible {
+    outline: 3px solid #b9a8d7;
+    outline-offset: 3px;
+}
+
 .contact-duplicates-page {
     display: grid;
     align-content: start;
     gap: 16px;
+}
+
+.contact-comments-page {
+    display: grid;
+    align-content: start;
+    gap: 16px;
+}
+
+.contact-comments-page .history-title-panel,
+.contact-comments-page .history-empty-state,
+.contact-comment-card,
+.contact-comment-form,
+.contact-comments-deleted-notice {
+    border: 1px solid #d8e2f0;
+    border-radius: 14px;
+    background: linear-gradient(120deg, #edf3fb, #f4f7fc 78%);
+    box-shadow: 0 6px 18px rgb(32 59 108 / 5%);
+}
+
+.contact-comments-merge-note {
+    margin: 0;
+    color: #526784;
+    font-size: .92rem;
+}
+
+.contact-comments-page .history-title-panel {
+    align-self: start;
+    min-height: 0;
+    height: auto;
+    padding: .875rem 1.25rem;
+}
+
+.contact-comment-form {
+    display: grid;
+    gap: 10px;
+    padding: 16px;
+}
+
+.contact-comment-form label {
+    color: #354e76;
+    font-weight: 650;
+}
+
+.contact-comment-form small {
+    color: #526784;
+}
+
+.contact-comment-form textarea {
+    width: 100%;
+    min-width: 0;
+    resize: vertical;
+    box-sizing: border-box;
+}
+
+.contact-comment-form .button {
+    justify-self: start;
+}
+
+.contact-comments-deleted-notice {
+    margin: 0;
+    padding: 14px 16px;
+    color: #354e76;
+}
+
+.contact-comments-list {
+    display: grid;
+    gap: 12px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.contact-comment-card {
+    min-width: 0;
+    padding: 16px;
+}
+
+.contact-comment-card > header {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: 6px 14px;
+    color: #354e76;
+    font-size: .9rem;
+}
+
+.contact-comment-card > p {
+    margin: 12px 0 0;
+    overflow-wrap: anywhere;
+    white-space: normal;
+}
+
+.contact-comment-card > small {
+    display: block;
+    margin-top: 10px;
+    color: #526784;
+}
+
+.contact-row-actions .button-comments {
+    border-color: #86b994;
+    color: #14532d;
+    background: #e8f5e9;
+}
+
+.contact-row-actions .button-comments:hover:not(:disabled) {
+    border-color: #6fa780;
+    color: #103f25;
+    background: #d7edda;
+}
+
+.contact-row-actions .button-comments:focus-visible {
+    outline: 3px solid #86b994;
+    outline-offset: 2px;
+}
+
+.contact-row-actions .button-history {
+    border-color: #9dbbe9;
+    color: #214b85;
+    background: #e7f0ff;
+}
+
+.contact-row-actions .button-history:hover:not(:disabled) {
+    border-color: #83a9e2;
+    color: #183d70;
+    background: #d7e7ff;
+}
+
+.contact-row-actions .button-history:focus-visible {
+    outline: 3px solid #93b9f0;
+    outline-offset: 2px;
+}
+
+.contact-row-actions .button-edit {
+    border-color: #e8bd82;
+    color: #8a4b08;
+    background: #fff1df;
+}
+
+.contact-row-actions .button-edit:hover:not(:disabled) {
+    border-color: #dca75f;
+    color: #713b06;
+    background: #ffe7c7;
+}
+
+.contact-row-actions .button-edit:focus-visible {
+    outline: 3px solid #e8bd82;
+    outline-offset: 2px;
+}
+
+.contact-row-actions .button-delete {
+    border-color: #e5a5ab;
+    color: #8e2630;
+    background: #fff0f1;
+}
+
+.contact-row-actions .button-delete:hover:not(:disabled) {
+    border-color: #d8838c;
+    color: #741d26;
+    background: #ffdcdf;
+}
+
+.contact-row-actions .button-delete:focus-visible {
+    outline: 3px solid #e5a5ab;
+    outline-offset: 2px;
 }
 
 .duplicates-back-link {
@@ -684,21 +865,4 @@ a.pagination-link:hover {
 }
 .contact-row-actions {
     flex-wrap: wrap;
-}
-
-.button-history {
-    border-color: #2563eb;
-    background: #2563eb;
-    color: #fff;
-}
-
-.button-history:hover {
-    border-color: #1d4ed8;
-    background: #1d4ed8;
-    color: #fff;
-}
-
-.button-history:focus-visible {
-    outline: 3px solid #93c5fd;
-    outline-offset: 2px;
 }

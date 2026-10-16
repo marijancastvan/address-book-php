@@ -309,7 +309,7 @@ $switchViewQuery = http_build_query($filters + $sortQuery + ['page' => 1] + ($sh
                 <div class="contacts-header-actions">
                     <?php if (!$showDeleted): ?>
                         <button class="button button-primary" type="button" data-dialog-open="contact-create-dialog">Dodaj kontakt</button>
-                        <button class="button button-secondary" type="button" data-dialog-open="contact-generator-dialog">KREIRAJ DUMMY</button>
+                        <button class="button button-secondary button-contact-generator" type="button" data-dialog-open="contact-generator-dialog">KREIRAJ DUMMY</button>
                         <a class="button button-duplicates" href="<?= escapeHtml($baseUrl) ?>/contact-duplicates.php?<?= escapeHtml($listContextQuery) ?>">Duplikati</a>
                     <?php endif; ?>
                     <a class="button <?= $showDeleted ? 'button-primary' : 'button-switch-deleted' ?>" href="<?= escapeHtml($baseUrl) ?>/contacts.php?<?= escapeHtml($switchViewQuery) ?>"><?= $showDeleted ? 'Aktivni kontakti' : 'Obrisani kontakti' ?></a>
@@ -415,11 +415,12 @@ $switchViewQuery = http_build_query($filters + $sortQuery + ['page' => 1] + ($sh
                                     </div></td>
                                     <td data-label="Akcije"><div class="row-actions contact-row-actions">
                                         <a class="button button-small button-history" href="<?= escapeHtml($baseUrl) ?>/contact-history.php?<?= escapeHtml(http_build_query(['id' => (int) $contact['id']] + $filters + $sortQuery + ['page' => $page] + $viewQuery)) ?>">Istorija</a>
+                                        <a class="button button-small button-comments" href="<?= escapeHtml($baseUrl) ?>/contact-comments.php?<?= escapeHtml(http_build_query(['id' => (int) $contact['id']] + $filters + $sortQuery + ['page' => $page] + $viewQuery)) ?>">Komentari</a>
                                         <?php if ($showDeleted): ?>
                                             <button class="button button-small button-primary" type="button" data-confirm-open="contact-restore-dialog" data-contact-action="restore" data-delete-id="<?= (int) $contact['id'] ?>">Vrati kontakt</button>
                                         <?php else: ?>
-                                            <a class="button button-small button-secondary" href="<?= escapeHtml($baseUrl) ?>/contacts.php?<?= escapeHtml(http_build_query(['edit_id' => (int) $contact['id']] + $filters + $sortQuery + ['page' => $page])) ?>">Izmeni</a>
-                                            <button class="button button-small button-danger" type="button" data-confirm-open="contact-delete-dialog" data-contact-action="delete" data-delete-id="<?= (int) $contact['id'] ?>" data-delete-label="<?= escapeHtml($contact['first_name'] . ' ' . $contact['last_name']) ?>">Izbriši</button>
+                                            <a class="button button-small button-secondary button-edit" href="<?= escapeHtml($baseUrl) ?>/contacts.php?<?= escapeHtml(http_build_query(['edit_id' => (int) $contact['id']] + $filters + $sortQuery + ['page' => $page])) ?>">Izmeni</a>
+                                            <button class="button button-small button-danger button-delete" type="button" data-confirm-open="contact-delete-dialog" data-contact-action="delete" data-delete-id="<?= (int) $contact['id'] ?>" data-delete-label="<?= escapeHtml($contact['first_name'] . ' ' . $contact['last_name']) ?>">Izbriši</button>
                                         <?php endif; ?>
                                     </div></td>
                                 </tr>

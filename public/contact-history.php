@@ -68,7 +68,7 @@ $sourcePage = is_int($sourcePage) && $sourcePage > 0 ? $sourcePage : 1;
 $backUrl = $baseUrl . '/contacts.php?' . http_build_query($context + ['page' => $sourcePage]);
 $utcTimezone = new DateTimeZone('UTC');
 $historyTimezone = new DateTimeZone('Europe/Belgrade');
-$actionLabels = ['contact_updated' => 'Izmena kontakta', 'contact_deleted' => 'Brisanje kontakta', 'contact_restored' => 'Vraćanje kontakta', 'tag_renamed' => 'Preimenovanje taga', 'tag_deleted' => 'Brisanje taga', 'city_renamed' => 'Preimenovanje grada'];
+$actionLabels = ['contact_updated' => 'Izmena kontakta', 'contact_deleted' => 'Brisanje kontakta', 'contact_restored' => 'Vraćanje kontakta', 'contact_merge_kept' => 'Spajanje kontakata — preostao kontakt', 'contact_merge_removed' => 'Spajanje kontakata — uklonjen iz aktivnih', 'tag_renamed' => 'Preimenovanje taga', 'tag_deleted' => 'Brisanje taga', 'city_renamed' => 'Preimenovanje grada'];
 $formatValue = static function (string $value): string {
     $decoded = json_decode($value, true);
     if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {

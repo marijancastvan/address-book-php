@@ -176,6 +176,27 @@
     overflow-wrap: anywhere;
 }
 
+.contact-duplicates-table .duplicate-merge-link {
+    display: inline-flex;
+    width: auto;
+    min-width: 72px;
+    justify-content: center;
+    border: 1px solid #294c83;
+    color: #fff;
+    background: #294c83;
+    text-decoration: none;
+}
+
+.contact-duplicates-table .duplicate-merge-link:hover {
+    border-color: #203b6c;
+    background: #203b6c;
+}
+
+.contact-duplicates-table .duplicate-merge-link:focus-visible {
+    outline: 3px solid #60a5fa;
+    outline-offset: 2px;
+}
+
 .duplicate-reason {
     display: inline-block;
     border: 1px solid #c8d8ee;
@@ -185,6 +206,167 @@
     background: #e8eef8;
     font-size: 13px;
     font-weight: 650;
+}
+
+.contact-merge-page .contact-merge-form {
+    display: grid;
+    gap: 16px;
+}
+
+.contact-merge-page .merge-keep-panel,
+.contact-merge-page .merge-fields-panel,
+.contact-merge-page .merge-preview-panel {
+    min-width: 0;
+    padding: 18px;
+    border: 1px solid #d2ddec;
+    border-radius: 12px;
+    background: #f8faff;
+}
+
+.contact-merge-page .merge-keep-panel > label,
+.contact-merge-page .merge-fields-panel h2,
+.contact-merge-page .merge-preview-panel h2 {
+    display: block;
+    margin: 0 0 10px;
+    color: #203b6c;
+    font-size: 17px;
+    font-weight: 720;
+}
+
+.contact-merge-page .merge-keep-panel select,
+.contact-merge-page .merge-field-row select {
+    width: 100%;
+    min-width: 0;
+    padding: 10px 12px;
+    border: 1px solid #cbd7e8;
+    border-radius: 8px;
+    color: #172033;
+    background: #fff;
+}
+
+.contact-merge-page .merge-keep-panel p,
+.contact-merge-page .merge-preview-kept {
+    margin: 10px 0 0;
+    color: #526174;
+}
+
+.contact-merge-page .merge-use-kept-values {
+    width: fit-content;
+    max-width: 100%;
+    margin-top: 12px;
+    border-color: #c8d8ee;
+    color: #203b6c;
+    background: #e8eef8;
+    white-space: normal;
+}
+
+.contact-merge-page .merge-use-kept-values:hover {
+    background: #dbeafe;
+}
+
+.contact-merge-page .merge-use-kept-values:focus-visible {
+    outline: 3px solid #60a5fa;
+    outline-offset: 2px;
+}
+
+.contact-merge-page .merge-field-row {
+    display: grid;
+    grid-template-columns: minmax(100px, .35fr) minmax(0, 1fr);
+    align-items: center;
+    gap: 14px;
+    margin-top: 11px;
+    color: #354e76;
+    font-weight: 650;
+}
+
+.contact-merge-page .merge-preview-panel dl {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+    margin: 16px 0;
+}
+
+.contact-merge-page .merge-preview-panel dl > div {
+    min-width: 0;
+    padding: 11px 12px;
+    border: 1px solid #d8e2f0;
+    border-radius: 9px;
+    background: #fff;
+}
+
+.contact-merge-page .merge-preview-panel dt {
+    margin-bottom: 4px;
+    color: #64748b;
+    font-size: 13px;
+    font-weight: 650;
+}
+
+.contact-merge-page .merge-preview-panel dd {
+    margin: 0;
+    color: #172033;
+    overflow-wrap: anywhere;
+}
+
+.contact-merge-page .merge-preview-panel ul {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 7px;
+    margin: 8px 0 0;
+    padding: 0;
+    list-style: none;
+}
+
+.contact-merge-page .merge-preview-panel li {
+    padding: 5px 9px;
+    border: 1px solid #d8b4fe;
+    border-radius: 999px;
+    color: #6b21a8;
+    background: #f3e8ff;
+    overflow-wrap: anywhere;
+}
+
+.contact-merge-page .merge-soft-delete-note,
+.contact-merge-page .contact-merge-error {
+    margin: 0;
+    padding: 13px 15px;
+    border: 1px solid #d8e2f0;
+    border-radius: 10px;
+    color: #354e76;
+    background: #f4f7fc;
+}
+
+.contact-merge-page .contact-merge-error {
+    border-color: #e6c7c7;
+    color: #8a2630;
+    background: #fff5f5;
+}
+
+.contact-merge-page .merge-form-actions {
+    display: flex;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.contact-merge-page .merge-form-actions button:disabled {
+    cursor: wait;
+    opacity: .7;
+}
+
+@media (max-width: 640px) {
+    .contact-merge-page .merge-field-row {
+        grid-template-columns: minmax(0, 1fr);
+        gap: 5px;
+    }
+
+    .contact-merge-page .merge-preview-panel dl {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .contact-merge-page .merge-form-actions > * {
+        flex: 1 1 100%;
+        text-align: center;
+    }
 }
 
 .search-status:empty {

@@ -69,6 +69,15 @@ $pageUrl = static function (int $targetPage) use ($baseUrl, $returnContext): str
         $returnContext + ['duplicates_page' => $targetPage],
     );
 };
+$mergeLink = static function (array $pair) use ($baseUrl, $returnContext, $page): string {
+    return $baseUrl . '/contact-merge.php?' . http_build_query(
+        $returnContext + [
+            'duplicates_page' => $page,
+            'first_id' => (int) $pair['a_id'],
+            'second_id' => (int) $pair['b_id'],
+        ],
+    );
+};
 $activeNavigation = 'contacts';
 ?>
 <!doctype html>
@@ -94,19 +103,21 @@ $activeNavigation = 'contacts';
             <header class="page-header">
                 <div><p class="eyebrow">ADRESAR</p><h1>Duplikati kontakata</h1></div>
             </header>
+            <?php if (($_GET['success'] ?? '') === 'merged'): ?><p class="duplicates-explanation" role="status">Kontakti su spojeni. Preostali kontakt je aktivan, a drugi je dostupan u „Obrisani kontakti“.</p><?php endif; ?>
             <p class="duplicates-explanation">Prikazani su parovi aktivnih kontakata istog naloga koji dele potpuno isti normalizovani telefon ili email. Svaki par je nezavisan: ako A deli telefon sa B, a B email sa C, prikazuju se parovi A–B i B–C sa svojim zasebnim razlozima.</p>
             <?php if ($pairs === []): ?>
                 <section class="empty-state"><h2>Nema pronađenih duplikata</h2><p>Aktivni kontakti trenutno nemaju poklapanja po telefonu ili emailu.</p></section>
             <?php else: ?>
                 <div class="table-wrap">
                     <table class="contact-duplicates-table">
-                        <thead><tr><th scope="col">Kontakt 1</th><th scope="col">Poklapanje</th><th scope="col">Kontakt 2</th></tr></thead>
+                        <thead><tr><th scope="col">Kontakt 1</th><th scope="col">Poklapanje</th><th scope="col">Kontakt 2</th><th scope="col">Akcija</th></tr></thead>
                         <tbody>
                         <?php foreach ($pairs as $pair): ?>
                             <tr>
                                 <td data-label="Kontakt 1"><strong><?= escapeHtml($pair['a_first_name'] . ' ' . $pair['a_last_name']) ?></strong><span><?= escapeHtml($pair['a_phone']) ?></span><span><?= escapeHtml($pair['a_email']) ?></span></td>
                                 <td data-label="Poklapanje"><span class="duplicate-reason"><?= escapeHtml($pair['reason']) ?></span></td>
                                 <td data-label="Kontakt 2"><strong><?= escapeHtml($pair['b_first_name'] . ' ' . $pair['b_last_name']) ?></strong><span><?= escapeHtml($pair['b_phone']) ?></span><span><?= escapeHtml($pair['b_email']) ?></span></td>
+                                <td data-label="Akcija"><a class="button button-small duplicate-merge-link" href="<?= escapeHtml($mergeLink($pair)) ?>">Spoji</a></td>
                             </tr>
                         <?php endforeach; ?>
                         </tbody>

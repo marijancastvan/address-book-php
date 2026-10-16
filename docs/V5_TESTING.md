@@ -75,3 +75,33 @@ Izvršavajte samo u namenskoj privremenoj lokalnoj bazi. Ne koristite glavnu lok
 ### Hosting redosled
 
 Pošto Git push automatski objavljuje kod, prvo napravite i proverite hosting backup. Zatim, **pre push-a**, primenite SQL iz migracije 007 nad hosting bazom preko odobrenog DB alata (npr. Plesk/phpMyAdmin), jer novi kod očekuje obe kolone. Posle potvrde migracije push objavljuje kod. Zatim pokrenite `scripts/backfill-contact-duplicate-keys.php` kroz Plesk CLI/SSH ili drugi odobreni, privatni CLI pristup i proverite izveštaj. Ako hosting nema CLI, dogovorite CLI pristup sa hosting podrškom ili administratorom; do backfill-a stari kontakti nemaju ključeve i zato neće biti uključeni u pregled. Ne pravite javni ili nezaštićeni backfill endpoint. Ne testirajte migraciju/backfill na produkciji; produkcioni koraci su samo plan objavljivanja nakon lokalnog testiranja i odobrenog backupa.
+
+## V5.3.1 — Ručno spajanje dva duplirana kontakta
+
+Spajanje nema novu migraciju. Testirajte u zasebnoj privremenoj lokalnoj bazi sa šemom `001`–`007`; ne koristite glavnu lokalnu bazu ni hosting. Važna otvorena stavka: backfill starih kontakata na hostingu još nije izvršen. Novi kontakti, izmene i generator popunjavaju normalizovane ključeve automatski, ali stari hosting kontakti bez ključeva neće se pojaviti kao duplikati dok se privatni CLI backfill ne izvrši.
+
+### Pregled i uspešno spajanje
+
+1. Napravite par koji se poklapa samo po telefonu, drugi samo po emailu i treći po oba. Na stranici **Duplikati** svaki par treba da ima dugme **Spoji**.
+2. Otvorite pregled spajanja. Proverite zajedničku levu navigaciju i svetloplavi stil sekcije Kontakti. ID i datum kreiranja izabranog preostalog kontakta moraju ostati isti.
+3. Proverite da su ime, prezime, telefon, email i grad inicijalno izabrani sa kontakta koji ostaje. Menjajte izvore polja i potvrdite da se „Konačan rezultat“ menja pre potvrde. Promena kontakta koji ostaje ne sme sama promeniti izbore; dugme **Postavi sva polja na kontakt koji ostaje** namerno postavlja svih pet izbora na njega.
+4. Dodelite tag A prvom kontaktu i tag B drugom. Spojite ih. Aktivni kontakt treba da ima oba taga tačno jednom; drugi kontakt prelazi u **Obrisani kontakti** sa svojim originalnim tagovima i istorijom.
+5. Proverite spajanje sa svakim kontaktom kao preostalim i kombinacijom polja sa oba izvora. Tagovi se uvek objedinjuju.
+6. Proverite istoriju oba kontakta. Na preostalom se očekuje događaj **Spajanje kontakata — preostao kontakt** sa samo stvarno promenjenim poljima/tagovima i opisom ID-jeva. Na uklonjenom se očekuje **Spajanje kontakata — uklonjen iz aktivnih**, status i isti opis para. Događaj spajanja mora postojati i kada su sva polja i tagovi već isti.
+7. Vratite uklonjeni kontakt iz pregleda obrisanih. Očekuje se zaseban aktivan kontakt sa originalnim ID-jem, podacima, tagovima i istorijom; izmene preostalog kontakta ostaju sačuvane, a pregled duplikata može ponovo prikazati par.
+8. Proverite **Otkaži** i povratni link: oba vode na istu stranicu pregleda duplikata i zadržavaju filtere, sortiranje i stranicu kontakata. GET pregled, otkazivanje i povratak ne smeju menjati bazu.
+
+### Odbijeni i zastareli zahtevi i transakcija
+
+1. Pokušajte spajanje tuđeg kontakta, obrisanog kontakta, istog ID-ja dvaput, nepostojećeg ID-ja, izbora izvora van para i POST-a bez/neispravnog CSRF tokena. Zahtev mora biti odbijen, a kontakt, tagovi i istorija ostaju nepromenjeni.
+2. Otvorite pregled, pa u drugoj sesiji promenite polje, grad, naziv taga ili vezu taga. Potvrdite staru formu: spajanje mora biti odbijeno kao zastarelo, prikazuje se osvežen pregled i potrebna je nova potvrda.
+3. Promenite telefon/email tako da par više ne ispunjava pravila V5.3. Stara potvrda mora biti odbijena. Ponovite POST posle uspešnog spajanja: ne sme nastati novo spajanje ni duplirani događaj.
+4. U izolovanoj bazi izazovite grešku pri `INSERT`-u u `contact_history_events` (npr. privremenim testnim triggerom), pošaljite merge i proverite rollback: preostali kontakt, njegove tag veze i `deleted_at` drugog kontakta moraju ostati nepromenjeni, bez delimične istorije. Uklonite trigger odmah nakon testa.
+5. Posle uspeha proverite da spojeni par nestaje iz Duplikata, a druga poklapanja sa preostalim kontaktom ostaju kao nezavisni parovi sa svojim razlozima.
+
+### Ručne HTTP i responsive provere
+
+1. Prijavite se kao dva korisnika i pokušajte direktno otvoriti/POST-ovati ID-jeve drugog korisnika. Očekuje se nedostupan par bez promena.
+2. Pošaljite POST bez CSRF tokena i sa izmenjenim tokenom. Statusi, tagovi i istorija ne smeju se promeniti.
+3. Na desktopu i uskom telefonu proverite čitljivost izbora i pregleda, odsustvo horizontalnog prelivanja i raspored dugmeta **Spoji**.
+4. Potvrdite da pretraga/filteri, V5.1 sortiranje, paginacija, live search, CRUD, vraćanje i istorija kontakta rade kao pre.

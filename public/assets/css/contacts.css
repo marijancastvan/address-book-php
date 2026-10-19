@@ -125,6 +125,109 @@
     outline-offset: 3px;
 }
 
+.contacts-header-actions > .button-import {
+    border: 1px solid #a8d3b1;
+    color: #245c32;
+    background: #eef8f0;
+}
+
+.contacts-header-actions > .button-import:hover:not(:disabled) {
+    border-color: #83bd91;
+    color: #194b27;
+    background: #e0f2e4;
+}
+
+.contacts-header-actions > .button-import:focus-visible {
+    outline: 3px solid #83bd91;
+    outline-offset: 3px;
+}
+
+.contact-import-page {
+    display: grid;
+    align-content: start;
+    gap: 16px;
+}
+
+.contact-import-panel {
+    display: grid;
+    gap: 14px;
+    padding: 18px;
+    border: 1px solid #d8e2f0;
+    border-radius: 14px;
+    background: linear-gradient(120deg, #edf3fb, #f4f7fc 78%);
+    box-shadow: 0 6px 18px rgb(32 59 108 / 5%);
+}
+
+.contact-import-panel > :last-child {
+    margin-bottom: 0;
+}
+
+.contact-import-note,
+.contact-import-warning {
+    margin: 0;
+    color: #435875;
+}
+
+.contact-import-warning {
+    padding: 12px 14px;
+    border: 1px solid #e8c979;
+    border-radius: 10px;
+    background: #fff9e6;
+}
+
+.contact-import-checks {
+    display: grid;
+    gap: 10px;
+}
+
+.contact-import-check {
+    display: flex;
+    align-items: flex-start;
+    gap: 9px;
+}
+
+.contact-import-check input {
+    width: auto;
+    min-height: 0;
+    margin-top: 4px;
+}
+
+.contact-import-page .table-scroll {
+    max-width: 100%;
+}
+
+.contact-import-page .contact-import-table td {
+    min-width: 120px;
+    max-width: 360px;
+    overflow-wrap: anywhere;
+    white-space: pre-wrap;
+    vertical-align: top;
+}
+
+.contact-import-row-errors,
+.contact-import-row-warnings {
+    margin: 0;
+    padding-left: 18px;
+}
+
+.contact-import-row-errors {
+    color: #8e2630;
+}
+
+.contact-import-row-warnings {
+    color: #76580b;
+}
+
+.contact-import-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.contact-import-upload-form .contact-import-actions {
+    margin-top: 16px;
+}
+
 .contact-duplicates-page {
     display: grid;
     align-content: start;

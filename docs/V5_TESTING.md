@@ -132,3 +132,59 @@ Spajanje nema novu migraciju. Testirajte u zasebnoj privremenoj lokalnoj bazi sa
 ### Hosting napomene
 
 Hosting backfill starih kontakata za V5.3 i dalje nije izvršen; novi/izmenjeni kontakti dobijaju normalizovane ključeve automatski. Za V5.4, pre objave napravite odobreni hosting backup i primenite migraciju 008 na hosting bazi pre objave koda, jer novi kod očekuje tabelu `contact_comments`. Zatim objavite kod i ručno proverite komentare. Ovo je samo redosled za kasnije odobreno objavljivanje; migraciju ne pokrećite produkciono tokom lokalnog testiranja.
+
+## V5.5 — CSV import kontakata
+
+### Priprema izolovane lokalne baze
+
+Migracija 009 dodaje samo privatni prostor za kratkotrajni pregled importa. Ne primenjujte je na glavnu lokalnu ni hosting bazu tokom razvoja.
+
+1. Napravite rezervnu kopiju i novu privremenu lokalnu bazu, na primer `address_book_v55_test`, sa `utf8mb4` i `utf8mb4_unicode_ci`.
+2. U praznu privremenu bazu primenite redom `001_create_initial_tables.sql` kroz `009_create_contact_import_batches.sql`. Koristite samo test bazu i posebnu privremenu kopiju projekta sa sopstvenim, Git-ignorisanom `app/config/config.local.php`.
+3. Proverite:
+
+   ```sql
+   SHOW CREATE TABLE contact_import_batches;
+   SHOW INDEX FROM contact_import_batches;
+   ```
+
+   Očekuju se hash tokena, LONGTEXT staging payload, rok važenja, jedinstven token i indeksi za korisnika/rok i čišćenje isteklih pregleda. Tabela ne sadrži javnu putanju do fajla.
+4. Pokrenite parser proveru iz korena projekta: `php tests/contact-import-parser.php`.
+5. Po završetku uklonite samo privremenu kopiju i privremenu test bazu. Ne menjajte postojeći lokalni config.
+
+Istekli staging redovi se brišu oportunistički pri sledećem zaštićenom zahtevu za import; ne postoji cron niti javni cleanup endpoint.
+
+### Format CSV-a i Excel
+
+Zaglavlje mora imati tačno pet kolona (redosled može biti promenjen):
+
+```csv
+first_name,last_name,phone,email,city
+Mila,Petrović,0641234567,mila.petrovic@example.com,Zemun
+Luka,Jovanović,+381641234568,luka.jovanovic@example.com,"Novi, Beograd"
+```
+
+Korisnik bira zarez ili tačka-zarez. Podržani su UTF-8 sa/bez BOM-a, standardna dvostruka navodila, escapovani navodnici i prelomi redova unutar navedenog polja. Prazni redovi se ignorišu. Telefon se obrađuje kao tekst.
+
+Excel može ukloniti nule sa početka telefona ili promeniti `+` vrednost. Pre unošenja telefona formatirajte celu kolonu kao **Text/Tekst**. Pri uvozu CSV-a koristite Excel opciju za tekstualne podatke i eksplicitno izaberite **Text** za kolonu `phone`; nemojte otvarati pa ponovo snimati fajl ako je Excel već automatski pretvorio brojeve.
+
+### Ručni UI i bezbednosni scenariji
+
+1. Na **Kontakti** kliknite **Import CSV**. Proverite da su vidljiva ograničenja 2 MiB/1000 kontakata, izbor separatora, šablon i napomena o Excelu. Preuzmite šablon; treba da sadrži zaglavlje i dva izmišljena primera.
+2. Učitajte zarez CSV sa BOM-om, unicode imenima, navodnicima, quoted zarezom/prelomom reda i telefonima `064...` i `+381...`. Ponovite sa tačka-zarezom i promenjenim redosledom kolona. Očekujte pregled koji prikazuje sve vrednosti ispravno i ne pravi nijedan kontakt ni grad.
+3. Probajte prazan fajl, neispravan UTF-8, NUL sadržaj, neispravne navodnike, pogrešan broj polja, nedostajuću/dupliranu/nepoznatu kolonu, pogrešan separator, 2 MiB + 1 bajt i 1001 kontakt. Svaki slučaj treba da prikaže razumljivu poruku na srpskom; nijedan zapis se ne uvozi.
+4. Proverite prazan naziv, naziv sa razmacima, neispravan email i svako obavezno kontakt polje. Greška treba da navede broj CSV zapisa i polje; dugme **Potvrdi import** ne treba da postoji dok greške nisu uklonjene. Ispravljen fajl učitajte ponovo.
+5. Uvezite kontakte sa svojim postojećim gradom i proverite da nema kreiranja/dupliranja grada. Učitajte nepostojeći grad: pregled treba da ga navede i zahteva checkbox **Kreiraj nedostajuće gradove**. Bez checkbox-a direktan POST ne sme kreirati grad ni kontakte.
+6. Stavite `Zemun`, `zemun` i postojeći `ZEMUN` u različite redove/varijante. Poređivanje prati `utf8mb4_unicode_ci`; nedostajući case-varijantni gradovi treba da se objedine, a ne postoje duplikati kod istog korisnika.
+7. Dodajte u fajl dva reda sa istim normalizovanim telefonom, zatim emailom; dodajte i postojeći aktivni kontakt sa istim ključem. Pregled treba da upozori uz broj CSV zapisa i odgovarajući razlog. Tek uz checkbox za uvoz duplikata smeju svi redovi biti dodati; nijedan se automatski ne spaja ili preskače. Posle importa proverite postojeći pregled **Duplikati**.
+8. Obrisani kontakti nisu aktivni duplikati i ne smeju izazvati upozorenje. Kontakti drugog korisnika nikad ne smeju biti uključeni u poređenje ili uvoz.
+9. Otvorite dva importa u odvojenim tabovima; njihovi tokeni i redovi ostaju nezavisni. Otkazivanje jednog uklanja samo njegov staging. Sačekajte 30 minuta (ili u privremenoj bazi pomerite `expires_at` u prošlost): import treba da bude odbijen i staging očišćen.
+10. Pošaljite upload, potvrdu i otkazivanje bez CSRF tokena i sa izmenjenim tokenom. Očekuje se odbijanje bez kreiranja kontakta/grada. Prijavite se kao korisnik B i pokušajte da otvorite/potvrdite token korisnika A; nema pristupa i nema upisa.
+11. Posle uspešne potvrde ponovite isti POST i osvežite rezultat. Token je uklonjen pa nema drugog importa. Simulirajte dva paralelna POST-a: najviše jedan sme uspeti. Ako se lista gradova ili aktivni duplicate ključevi promene posle pregleda, prvo potvrđivanje treba osvežiti upozorenja i zahtevati novu potvrdu.
+12. U privremenoj bazi izazovite grešku na drugom `INSERT` kontaktu (privremeni trigger). Potvrda mora uraditi rollback svih prethodnih kontakata, novih gradova i potrošnje tokena. Uklonite trigger odmah posle testa.
+13. Proverite da novi kontakti imaju originalne tekstualne telefone i `phone_normalized`/`email_normalized`, da su vidljivi u aktivnoj listi i u postojećem pregledu duplikata. Ne nastaje događaj istorije niti se menjaju postojeći kontakti, tagovi ili komentari.
+14. Pokušajte prikaz CSV vrednosti poput `<script>` ili HTML atributa. U pregledu se prikazuju kao tekst; ne izvršavaju se.
+
+### Hosting redosled nakon lokalnog odobrenja
+
+Hosting backfill starih kontakata za V5.3 i dalje nije izvršen. Pre budućeg push-a koji objavljuje V5.5: napravite odobreni backup, primenite migraciju 009 preko privatnog odobrenog DB alata, proverite tabelu/indekse, pa tek onda objavite kod. Ne menjajte hosting `config.local.php`, ne stavljajte CSV/staging fajlove u web root i ne pravite javni backfill/cleanup endpoint. U V5.5 istekli batch-evi se čiste kroz zaštićeni import tok; hosting CLI backfill starih kontakata ostaje zasebna otvorena stavka.

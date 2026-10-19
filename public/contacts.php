@@ -311,6 +311,7 @@ $switchViewQuery = http_build_query($filters + $sortQuery + ['page' => 1] + ($sh
                         <button class="button button-primary" type="button" data-dialog-open="contact-create-dialog">Dodaj kontakt</button>
                         <button class="button button-secondary button-contact-generator" type="button" data-dialog-open="contact-generator-dialog">KREIRAJ DUMMY</button>
                         <a class="button button-duplicates" href="<?= escapeHtml($baseUrl) ?>/contact-duplicates.php?<?= escapeHtml($listContextQuery) ?>">Duplikati</a>
+                        <a class="button button-import" href="<?= escapeHtml($baseUrl) ?>/contact-import.php">Import CSV</a>
                     <?php endif; ?>
                     <a class="button <?= $showDeleted ? 'button-primary' : 'button-switch-deleted' ?>" href="<?= escapeHtml($baseUrl) ?>/contacts.php?<?= escapeHtml($switchViewQuery) ?>"><?= $showDeleted ? 'Aktivni kontakti' : 'Obrisani kontakti' ?></a>
                 </div>

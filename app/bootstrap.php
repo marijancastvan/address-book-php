@@ -2,7 +2,9 @@
 
 declare(strict_types=1);
 
-require_once __DIR__ . '/session.php';
+if (!defined('ADDRESS_BOOK_SKIP_SESSION')) {
+    require_once __DIR__ . '/session.php';
+}
 
 $localConfigPath = __DIR__ . '/config/config.local.php';
 $exampleConfigPath = __DIR__ . '/config/config.example.php';

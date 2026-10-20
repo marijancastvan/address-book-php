@@ -188,3 +188,44 @@ Excel može ukloniti nule sa početka telefona ili promeniti `+` vrednost. Pre u
 ### Hosting redosled nakon lokalnog odobrenja
 
 Hosting backfill starih kontakata za V5.3 i dalje nije izvršen. Pre budućeg push-a koji objavljuje V5.5: napravite odobreni backup, primenite migraciju 009 preko privatnog odobrenog DB alata, proverite tabelu/indekse, pa tek onda objavite kod. Ne menjajte hosting `config.local.php`, ne stavljajte CSV/staging fajlove u web root i ne pravite javni backfill/cleanup endpoint. U V5.5 istekli batch-evi se čiste kroz zaštićeni import tok; hosting CLI backfill starih kontakata ostaje zasebna otvorena stavka.
+
+## V5.6.1 — API tokeni i Bearer autentifikacija
+
+### Izolovana migracija
+
+1. Napravite backup i novu privremenu lokalnu MariaDB bazu (npr. `address_book_v561_test`) uz posebnu privremenu kopiju projekta i Git-ignorisan lokalni config. Ne koristite glavnu lokalnu ni hosting bazu.
+2. Primenite migracije `001`–`010` redom; proverite da `010_create_api_tokens.sql` prolazi na istoj MariaDB verziji kao hosting (cilj je MariaDB 5.5.68).
+3. Proverite tabelu:
+
+   ```sql
+   SHOW CREATE TABLE api_tokens;
+   SHOW INDEX FROM api_tokens;
+   ```
+
+   Hash mora imati jedinstveni `ascii_bin` ključ. Red treba da sadrži samo hash i metapodatke, nikada plaintext token.
+4. Uklonite privremenu bazu/kopiju posle testiranja. Migracija se ne primenjuje na postojeću lokalnu/hosting bazu tokom ove faze.
+
+### UI i baza
+
+1. Kao korisnik A kreirajte token sa nazivom koji sadrži okolne razmake. Lista treba da prikazuje trimovan naziv, kreiranje i istek u Europe/Belgrade vremenu. Pun token se prikazuje samo na tom prikazu uz upozorenje; osvežavanje, povratak ili ponovno otvaranje ne sme ga prikazati ponovo.
+2. U privremenoj bazi proverite da `token_hash = SHA2(<plaintext>, 256)` odgovara tokenu koji je privremeno zadržan u testu, a da plaintext nije upisan ni u jednu kolonu. Ne stavljajte token u testni izveštaj.
+3. Probajte prazan naziv, samo Unicode razmake, 100 Unicode code point-a i 101 code point. Prazni/101 se odbijaju; validan naziv se trimuje i prihvata.
+4. Korisnik B ne sme videti ni opozvati token korisnika A slanjem njegovog ID-ja. Opoziv zahteva POST i validan CSRF; ponovljen opoziv ne menja red. Nakon opoziva token mora odmah dobiti 401 na API-ju.
+5. Očekivani rok važenja je 30 dana po UTC (`created_at`, `expires_at`, `revoked_at` su UTC DATETIME). Ručno pomerite `expires_at` u prošlost samo u privremenoj bazi i proverite UI status i API odbijanje.
+
+### Probni API HTTP endpoint
+
+Endpoint bez rewrite pravila: `GET /api/v1/me.php` (lokalno `http://127.0.0.1:8000/api/v1/me.php`, hosting URL je `app.base_url` + `/api/v1/me.php`; primeri su u `docs/API.md`). Pokrenite lokalni PHP server samo nad privremenom kopijom projekta/bazom.
+
+1. Sa važećim tokenom očekujte `200 application/json`, `Cache-Control: no-store` i `{"data":{"user_id":...}}` za vlasnika tokena. Sačuvani session cookie bez Bearer zaglavlja mora i dalje dobiti `401`.
+2. Bez tokena, pogrešnim formatom, nasumičnim tokenom, isteklim i opozvanim tokenom očekujte `401` JSON i `WWW-Authenticate: Bearer` challenge; ne sme se vratiti HTML ili redirect. Neispravan token ne sme otkriti korisnika.
+3. Dodajte `?token=...` bez zaglavlja: endpoint mora odbiti query token. Nevažeći token iz URL-a ne sme se autentifikovati.
+4. Pošaljite `POST` sa važećim zaglavljem: očekujte `405`, `Allow: GET`, JSON i no-store.
+5. Pošaljite HTTP zahtev koristeći loopback (`127.0.0.1`) za lokalni izuzetak: dozvoljen je. Ponovite preko ne-loopback peer-a ili sa ne-loopback hostname-om preko HTTP: očekujte `400 https_required`. Hosting koristi HTTPS; ne oslanjajte se na `X-Forwarded-Proto` niti samo na `Host`.
+6. Potvrdite da API ne koristi session login, ne postavlja CORS headers i ne emituje token/hash/config/SQL detalje ni u greškama.
+
+### Otvorene stavke
+
+- Hosting backfill starih kontakata za V5.3 još nije izvršen.
+- Stvarni paralelni test CSV confirmation toka još nije izvršen.
+- Hosting migracija 010, Plesk Authorization header forwarding i HTTPS endpoint nisu provereni. Pre buduće objave napravite odobreni backup, primenite migraciju 010 privatnim DB alatom, proverite indeks/FK, zatim objavite kod i ručno proverite HTTPS API. Ne menjajte hosting `config.local.php`.

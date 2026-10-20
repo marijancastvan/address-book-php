@@ -1,0 +1,158 @@
+.api-tokens-page {
+    display: grid;
+    align-content: start;
+    gap: 18px;
+}
+
+.api-tokens-page .page-header {
+    margin-bottom: 0;
+}
+
+.api-tokens-back {
+    justify-self: start;
+    border-color: #cbd5e1;
+    color: #fff;
+    background: #203b6c;
+}
+
+.api-tokens-back:hover:not(:disabled) {
+    background: #172c50;
+}
+
+.api-tokens-back:focus-visible {
+    outline: 3px solid #8fb0ff;
+    outline-offset: 3px;
+}
+
+.api-token-panel,
+.api-token-reveal {
+    display: grid;
+    gap: 14px;
+    padding: 20px;
+    border: 1px solid #d8e2f0;
+    border-radius: 14px;
+    background: linear-gradient(120deg, #edf3fb, #f7f9fd 78%);
+    box-shadow: 0 6px 18px rgb(32 59 108 / 5%);
+}
+
+.api-token-panel h2,
+.api-token-reveal h2,
+.api-token-item h3 {
+    margin: 0;
+    color: #203b6c;
+}
+
+.api-token-panel > p,
+.api-token-reveal > p,
+.api-token-details p {
+    margin: 0;
+    color: #435875;
+}
+
+.api-token-create-form {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: end;
+    gap: 14px;
+}
+
+.api-token-create-form .field-group {
+    min-width: 0;
+}
+
+.api-token-create-form input {
+    width: 100%;
+    min-height: 44px;
+}
+
+.api-token-reveal {
+    border-color: #e8c979;
+    background: #fff9e6;
+}
+
+.api-token-reveal code {
+    display: block;
+    max-width: 100%;
+    padding: 13px;
+    overflow-wrap: anywhere;
+    border: 1px solid #e5d6a9;
+    border-radius: 9px;
+    color: #172033;
+    background: #fff;
+    font-size: 14px;
+    user-select: all;
+}
+
+.api-token-expiry {
+    font-size: 13px;
+}
+
+.api-token-empty-state {
+    display: grid;
+    min-height: 94px;
+    place-items: center;
+    padding: 16px;
+    border: 1px dashed #cbd5e1;
+    border-radius: 10px;
+    color: #64748b;
+    background: #f8fafc;
+    text-align: center;
+}
+
+.api-token-empty-state p {
+    margin: 0;
+}
+
+.api-token-list {
+    display: grid;
+    gap: 10px;
+}
+
+.api-token-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 14px;
+    border: 1px solid #d8e2f0;
+    border-radius: 10px;
+    background: #fff;
+}
+
+.api-token-details {
+    display: grid;
+    gap: 4px;
+    min-width: 0;
+}
+
+.api-token-details h3 {
+    overflow-wrap: anywhere;
+    font-size: 16px;
+}
+
+.api-token-details p {
+    font-size: 13px;
+}
+
+.api-token-revoke-form {
+    flex: 0 0 auto;
+}
+
+.field-error {
+    color: #9f1d2c;
+}
+
+@media (max-width: 680px) {
+    .api-token-create-form {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .api-token-create-form > .button {
+        justify-self: start;
+    }
+
+    .api-token-item {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+}

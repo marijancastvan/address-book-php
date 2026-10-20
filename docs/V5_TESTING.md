@@ -228,4 +228,15 @@ Endpoint bez rewrite pravila: `GET /api/v1/me.php` (lokalno `http://127.0.0.1:80
 
 - Hosting backfill starih kontakata za V5.3 još nije izvršen.
 - Stvarni paralelni test CSV confirmation toka još nije izvršen.
-- Hosting migracija 010, Plesk Authorization header forwarding i HTTPS endpoint nisu provereni. Pre buduće objave napravite odobreni backup, primenite migraciju 010 privatnim DB alatom, proverite indeks/FK, zatim objavite kod i ručno proverite HTTPS API. Ne menjajte hosting `config.local.php`.
+- Hosting migracija 010, Plesk Authorization header forwarding i HTTPS endpoint nisu provereni. `.htaccess` u `public/api/` sadrži `CGIPassAuth On`; ta direktiva zahteva Apache 2.4.13+ i dozvolu za korišćenje u `.htaccess` prema `AllowOverride` pravilima. Ako posle objave dobijete HTTP 500, uklonite dodatu direktivu i proverite Apache error log; ne koristite uslovno pravilo koje bi tiho preskočilo direktivu.
+
+#### Hosting provera prosleđivanja Authorization zaglavlja
+
+Ove provere izvršiti tek nakon odobrenog deploy-a, preko HTTPS-a, na postojećem endpoint-u `GET /api/v1/me.php`. Hosting i Apache testovi u ovoj radnoj sesiji nisu izvršeni. Koristite samo privremeni terminalski placeholder za važeći token; ne zapisujte stvarni token u fajl, URL ili deljeni log.
+
+1. Pošaljite `Authorization: Bearer test`. Očekujte `401 application/json` i `error.code` vrednost `invalid_token`. Ako odgovor kaže `authentication_required`, zaglavlje i dalje ne stiže do PHP aplikacije.
+2. Pošaljite zahtev bez `Authorization` zaglavlja. Očekujte `401` JSON sa `error.code` vrednošću `authentication_required`.
+3. Pošaljite važeći, neistekao i neopozvan hosting token. Očekujte `200 application/json` sa `data.user_id` koji odgovara vlasniku tokena.
+4. Opozovite isti token kroz UI i ponovite zahtev. Očekujte `401` JSON sa `error.code` vrednošću `invalid_token`.
+
+Primeri `curl.exe` nalaze se u `docs/API.md`. Pre objave napravite odobreni backup i primenite migraciju 010 privatnim DB alatom, proverite indeks/FK, zatim objavite kod i ručno proverite HTTPS API. Ne menjajte hosting `config.local.php`.

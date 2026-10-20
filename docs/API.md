@@ -60,4 +60,22 @@ Invoke-RestMethod -Method Get -Uri "https://oculus.rs/marijan/address-book-php-h
 curl.exe -i -H "Authorization: Bearer PASTE_ONE_TIME_TOKEN_HERE" "https://oculus.rs/marijan/address-book-php-hosting/public/api/v1/me.php"
 ```
 
-Ako Plesk/PHP-FPM ne prosleđuje standardno `Authorization` zaglavlje aplikaciji, podešavanje servera mora ga izložiti kao `HTTP_AUTHORIZATION`, `REDIRECT_HTTP_AUTHORIZATION` ili kroz standardni `getallheaders()` API. Aplikacija namerno ne prihvata proizvoljne `X-*` zamene.
+### Prosleđivanje Authorization zaglavlja na Apache/Plesk-u
+
+`public/api/.htaccess` uključuje Apache direktivu `CGIPassAuth On` samo za API direktorijum. Ona prosleđuje standardno `Authorization` zaglavlje CGI/FastCGI aplikaciji, gde ga postojeći API helper može pročitati. Ne menja PHP autentifikaciju ni session login i ne podešava nginx.
+
+`CGIPassAuth` zahteva Apache 2.4.13 ili noviji, a hosting konfiguracija mora dozvoliti ovu direktivu u `.htaccess` kroz `AllowOverride` pravila. Ako nakon objave dobijete HTTP 500, uklonite dodatu direktivu i proverite Apache error log; nemojte prikrivati nepodržanu direktivu uslovnim pravilom.
+
+Nakon objave proverite postojeći endpoint `GET /api/v1/me.php` preko HTTPS-a. Namerno nevažeći literal `test` mora biti prepoznat kao poslati Bearer token i vratiti `401` sa JSON kodom `invalid_token` (a ne `authentication_required`). Zahtev bez Authorization zaglavlja mora vratiti `401` sa kodom `authentication_required`. Važeći, neopozvani hosting token mora vratiti `200` i ID vlasnika tokena. Nakon opoziva tokena kroz interfejs, isti zahtev mora vratiti `401` sa kodom `invalid_token`. Token koristite samo lokalno; nikada ga ne stavljajte u URL, repozitorijum ili deljeni log.
+
+Hosting provera još nije izvršena. Postojeći API helper čita `HTTP_AUTHORIZATION`, `REDIRECT_HTTP_AUTHORIZATION` i standardni rezultat `getallheaders()`; aplikacija namerno ne prihvata proizvoljna `X-*` zaglavlja kao zamenu.
+
+Primeri provere sa `curl.exe` (placeholder važećeg tokena zamenite samo u svom lokalnom terminalu; nemojte zapisivati stvarnu vrednost u fajl):
+
+```powershell
+$url = "https://YOUR_HOSTING_BASE_URL/api/v1/me.php"
+curl.exe -i -H "Authorization: Bearer test" $url
+curl.exe -i $url
+curl.exe -i -H "Authorization: Bearer PASTE_VALID_TOKEN_LOCALLY" $url
+# Nakon opoziva tokena ponovite prethodni zahtev; očekuje se 401 invalid_token.
+```

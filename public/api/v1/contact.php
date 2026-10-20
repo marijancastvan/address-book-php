@@ -8,8 +8,8 @@ require_once dirname(__DIR__, 3) . '/app/api-token-helpers.php';
 require_once dirname(__DIR__, 3) . '/app/api.php';
 require_once dirname(__DIR__, 3) . '/app/api-contact-helpers.php';
 
-if (($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'GET') {
-    apiErrorResponse(405, 'method_not_allowed', 'Dozvoljen je samo GET zahtev.', ['Allow' => 'GET']);
+if (!in_array($_SERVER['REQUEST_METHOD'] ?? 'GET', ['GET', 'PATCH', 'DELETE'], true)) {
+    apiErrorResponse(405, 'method_not_allowed', 'Dozvoljeni su GET, PATCH i DELETE zahtevi.', ['Allow' => 'GET, PATCH, DELETE']);
 }
 
 if (!apiRequestUsesSecureTransport()) {
@@ -30,9 +30,23 @@ try {
     if ($contactId === null) {
         apiContactInvalidParameter('Parametar „id“ je obavezan.');
     }
-    $contact = apiContactReadById($pdo, $userId, $contactId);
-    if ($contact === null) {
-        apiErrorResponse(404, 'contact_not_found', 'Kontakt nije pronađen.');
+    $method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
+    if ($method === 'GET') {
+        $contact = apiContactReadById($pdo, $userId, $contactId);
+        if ($contact === null) {
+            apiErrorResponse(404, 'contact_not_found', 'Kontakt nije pronađen.');
+        }
+    } elseif ($method === 'PATCH') {
+        $contact = apiUpdateContact($pdo, $userId, $contactId, apiContactReadJsonObject());
+    } else {
+        $transition = transitionContactDeletedState($pdo, $userId, $contactId, true);
+        if ($transition === 'not_found') {
+            apiErrorResponse(404, 'contact_not_found', 'Kontakt nije pronađen.');
+        }
+        $contact = apiContactReadById($pdo, $userId, $contactId);
+        if ($contact === null) {
+            throw new RuntimeException('Deleted API contact could not be loaded.');
+        }
     }
 
     apiJsonResponse(200, ['data' => $contact]);

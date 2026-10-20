@@ -8,8 +8,8 @@ require_once dirname(__DIR__, 3) . '/app/api-token-helpers.php';
 require_once dirname(__DIR__, 3) . '/app/api.php';
 require_once dirname(__DIR__, 3) . '/app/api-contact-helpers.php';
 
-if (($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'GET') {
-    apiErrorResponse(405, 'method_not_allowed', 'Dozvoljen je samo GET zahtev.', ['Allow' => 'GET']);
+if (!in_array($_SERVER['REQUEST_METHOD'] ?? 'GET', ['GET', 'POST'], true)) {
+    apiErrorResponse(405, 'method_not_allowed', 'Dozvoljeni su GET i POST zahtevi.', ['Allow' => 'GET, POST']);
 }
 
 if (!apiRequestUsesSecureTransport()) {
@@ -26,6 +26,16 @@ try {
 $userId = apiAuthenticateRequest($pdo);
 
 try {
+    if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
+        $contact = apiCreateContact($pdo, $userId, apiContactReadJsonObject());
+        $baseUrl = $config['app']['base_url'] ?? '';
+        if (!is_string($baseUrl) || filter_var($baseUrl, FILTER_VALIDATE_URL) === false) {
+            throw new RuntimeException('The API base URL is not configured.');
+        }
+        $location = rtrim($baseUrl, '/') . '/api/v1/contact.php?id=' . rawurlencode((string) $contact['id']);
+        apiJsonResponse(201, ['data' => $contact], ['Location' => $location]);
+    }
+
     $filters = apiContactListFilters($pdo, $userId, $_GET);
     $where = apiContactWhereClause($filters, $userId);
 

@@ -3,6 +3,9 @@
 declare(strict_types=1);
 
 require_once __DIR__ . '/contact-helpers.php';
+require_once __DIR__ . '/history-helpers.php';
+
+const API_CONTACT_MAX_BODY_BYTES = 65536;
 
 function apiContactInvalidParameter(string $message): never
 {
@@ -196,4 +199,334 @@ function apiContactReadById(PDO $pdo, int $userId, int $contactId): ?array
     $tagsByContact = getTagsForContacts($pdo, $userId, [$contact]);
 
     return apiContactPayload($contact, $tagsByContact[(int) $contact['id']] ?? []);
+}
+
+function apiContactReadJsonObject(): stdClass
+{
+    $contentType = trim((string) ($_SERVER['CONTENT_TYPE'] ?? $_SERVER['HTTP_CONTENT_TYPE'] ?? ''));
+    $contentTypeParts = array_map('trim', explode(';', $contentType));
+    if (strtolower((string) array_shift($contentTypeParts)) !== 'application/json') {
+        apiErrorResponse(415, 'unsupported_media_type', 'Content-Type mora biti application/json.');
+    }
+
+    foreach ($contentTypeParts as $parameter) {
+        if (preg_match('/\Acharset\s*=\s*(?:"utf-8"|utf-8)\z/iD', $parameter) !== 1) {
+            apiErrorResponse(415, 'unsupported_media_type', 'Podržan je samo UTF-8 JSON sadržaj.');
+        }
+    }
+
+    $contentLength = $_SERVER['CONTENT_LENGTH'] ?? null;
+    if (is_string($contentLength)
+        && preg_match('/\A[0-9]+\z/D', $contentLength) === 1
+        && (float) $contentLength > API_CONTACT_MAX_BODY_BYTES
+    ) {
+        apiErrorResponse(413, 'payload_too_large', 'JSON zahtev je veći od dozvoljenih 65536 bajtova.');
+    }
+
+    $stream = fopen('php://input', 'rb');
+    if ($stream === false) {
+        apiErrorResponse(400, 'invalid_json', 'JSON telo zahteva nije moguće pročitati.');
+    }
+
+    $rawBody = '';
+    while (!feof($stream) && strlen($rawBody) <= API_CONTACT_MAX_BODY_BYTES) {
+        $chunk = fread($stream, min(8192, API_CONTACT_MAX_BODY_BYTES + 1 - strlen($rawBody)));
+        if (!is_string($chunk) || $chunk === '') {
+            break;
+        }
+        $rawBody .= $chunk;
+    }
+    fclose($stream);
+
+    if (strlen($rawBody) > API_CONTACT_MAX_BODY_BYTES) {
+        apiErrorResponse(413, 'payload_too_large', 'JSON zahtev je veći od dozvoljenih 65536 bajtova.');
+    }
+
+    try {
+        $body = json_decode($rawBody, false, 512, JSON_THROW_ON_ERROR);
+    } catch (JsonException $exception) {
+        apiErrorResponse(400, 'invalid_json', 'JSON telo zahteva nije ispravno.');
+    }
+    if (!$body instanceof stdClass) {
+        apiErrorResponse(400, 'invalid_json', 'JSON telo zahteva mora biti objekat.');
+    }
+
+    return $body;
+}
+
+function apiContactValidationErrorResponse(array $fieldErrors): never
+{
+    $messages = array_values(array_unique(array_filter($fieldErrors, 'is_string')));
+    apiJsonResponse(422, [
+        'error' => [
+            'code' => 'validation_error',
+            'message' => implode(' ', $messages),
+            'fields' => $fieldErrors,
+        ],
+    ]);
+}
+
+/** Validate JSON field types and return only values that may be merged or inserted. */
+function apiContactSubmittedValues(stdClass $body, bool $partial): array
+{
+    $input = get_object_vars($body);
+    $allowedFields = ['first_name', 'last_name', 'phone', 'email', 'city_id', 'tag_ids'];
+    $errors = [];
+    foreach (array_keys($input) as $field) {
+        if (!in_array($field, $allowedFields, true)) {
+            $errors['_request'] = 'Zahtev sadrži nedozvoljeno polje: ' . $field . '.';
+        }
+    }
+    if ($partial && $input === []) {
+        $errors['_request'] = 'PATCH telo mora sadržati bar jedno polje.';
+    }
+
+    $values = [];
+    foreach (['first_name', 'last_name', 'phone', 'email'] as $field) {
+        if (array_key_exists($field, $input)) {
+            if (!is_string($input[$field])) {
+                $errors[$field] = 'Polje mora biti tekstualna vrednost.';
+            } else {
+                $values[$field] = trim($input[$field]);
+            }
+        } elseif (!$partial) {
+            $values[$field] = '';
+        }
+    }
+
+    if (array_key_exists('city_id', $input)) {
+        if (!is_int($input['city_id']) || $input['city_id'] < 1) {
+            $errors['city_id'] = 'Polje city_id mora biti pozitivan ceo broj.';
+        } else {
+            $values['city_id'] = (string) $input['city_id'];
+        }
+    } elseif (!$partial) {
+        $values['city_id'] = '';
+    }
+
+    $tagIdsProvided = array_key_exists('tag_ids', $input);
+    $tagIds = [];
+    if ($tagIdsProvided) {
+        if (!is_array($input['tag_ids']) || !array_is_list($input['tag_ids'])) {
+            $errors['tag_ids'] = 'Polje tag_ids mora biti JSON lista pozitivnih celih brojeva.';
+        } else {
+            foreach ($input['tag_ids'] as $tagId) {
+                if (!is_int($tagId) || $tagId < 1) {
+                    $errors['tag_ids'] = 'Svaki tag_ids element mora biti pozitivan ceo broj.';
+                    break;
+                }
+                $tagIds[$tagId] = $tagId;
+            }
+            $tagIds = array_values($tagIds);
+            sort($tagIds, SORT_NUMERIC);
+        }
+    }
+
+    return [
+        'values' => $values,
+        'tag_ids' => $tagIds,
+        'tag_ids_provided' => $tagIdsProvided,
+        'errors' => $errors,
+    ];
+}
+
+function apiCreateContact(PDO $pdo, int $userId, stdClass $body): array
+{
+    $submitted = apiContactSubmittedValues($body, false);
+    $values = array_replace([
+        'first_name' => '',
+        'last_name' => '',
+        'phone' => '',
+        'email' => '',
+        'city_id' => '',
+    ], $submitted['values']);
+    $errors = $submitted['errors'] + validateContactValues($values);
+    if ($errors !== []) {
+        apiContactValidationErrorResponse($errors);
+    }
+
+    $cityId = (int) $values['city_id'];
+    $tagIds = $submitted['tag_ids'];
+    $pdo->beginTransaction();
+    try {
+        lockUserForHistoryMutation($pdo, $userId);
+        if (!cityBelongsToUser($pdo, $cityId, $userId)) {
+            $pdo->rollBack();
+            apiContactValidationErrorResponse(['city_id' => 'Izabrani grad nije dostupan ovom nalogu.']);
+        }
+        if (!contactTagsBelongToUser($pdo, $userId, $tagIds)) {
+            $pdo->rollBack();
+            apiContactValidationErrorResponse(['tag_ids' => 'Jedan ili više tagova nisu dostupni ovom nalogu.']);
+        }
+
+        $insert = $pdo->prepare(
+            'INSERT INTO contacts
+                (user_id, first_name, last_name, phone, email, phone_normalized, email_normalized, city_id, updated_at)
+             VALUES
+                (:user_id, :first_name, :last_name, :phone, :email, :phone_normalized, :email_normalized, :city_id, UTC_TIMESTAMP())'
+        );
+        $insert->execute([
+            'user_id' => $userId,
+            'first_name' => $values['first_name'],
+            'last_name' => $values['last_name'],
+            'phone' => $values['phone'],
+            'email' => $values['email'],
+            'phone_normalized' => normalizeContactPhone($values['phone']),
+            'email_normalized' => normalizeContactEmail($values['email']),
+            'city_id' => $cityId,
+        ]);
+        $contactId = (int) $pdo->lastInsertId();
+        synchronizeContactTags($pdo, $userId, $contactId, $tagIds);
+        $pdo->commit();
+    } catch (Throwable $exception) {
+        if ($pdo->inTransaction()) {
+            $pdo->rollBack();
+        }
+        throw $exception;
+    }
+
+    $contact = apiContactReadById($pdo, $userId, $contactId);
+    if ($contact === null) {
+        throw new RuntimeException('Created API contact could not be loaded.');
+    }
+
+    return $contact;
+}
+
+function apiUpdateContact(PDO $pdo, int $userId, int $contactId, stdClass $body): array
+{
+    $submitted = apiContactSubmittedValues($body, true);
+    if ($submitted['errors'] !== []) {
+        apiContactValidationErrorResponse($submitted['errors']);
+    }
+
+    $pdo->beginTransaction();
+    try {
+        $actorEmail = lockUserForHistoryMutation($pdo, $userId);
+        $state = $pdo->prepare(
+            'SELECT deleted_at FROM contacts WHERE id = :contact_id AND user_id = :user_id FOR UPDATE'
+        );
+        $state->execute(['contact_id' => $contactId, 'user_id' => $userId]);
+        $contactState = $state->fetch(PDO::FETCH_ASSOC);
+        if ($contactState === false) {
+            $pdo->rollBack();
+            apiErrorResponse(404, 'contact_not_found', 'Kontakt nije pronađen.');
+        }
+        if ($contactState['deleted_at'] !== null) {
+            $pdo->rollBack();
+            apiErrorResponse(409, 'contact_deleted', 'Obrisani kontakt ne može da se menja. Prvo ga vratite u aktivne kontakte.');
+        }
+
+        $before = lockContactHistorySnapshot($pdo, $userId, $contactId);
+        if ($before === null) {
+            throw new RuntimeException('The active contact snapshot could not be loaded.');
+        }
+
+        $values = [
+            'first_name' => $before['first_name'],
+            'last_name' => $before['last_name'],
+            'phone' => $before['phone'],
+            'email' => $before['email'],
+            'city_id' => (string) $before['city']['id'],
+        ];
+        $values = array_replace($values, $submitted['values']);
+        $errors = validateContactValues($values);
+        if ($errors !== []) {
+            $pdo->rollBack();
+            apiContactValidationErrorResponse($errors);
+        }
+
+        $cityId = (int) $values['city_id'];
+        $cityQuery = $pdo->prepare('SELECT id, name FROM cities WHERE id = :city_id AND user_id = :user_id LIMIT 1');
+        $cityQuery->execute(['city_id' => $cityId, 'user_id' => $userId]);
+        $city = $cityQuery->fetch(PDO::FETCH_ASSOC);
+        if ($city === false) {
+            $pdo->rollBack();
+            apiContactValidationErrorResponse(['city_id' => 'Izabrani grad nije dostupan ovom nalogu.']);
+        }
+
+        $tagIds = $submitted['tag_ids_provided']
+            ? $submitted['tag_ids']
+            : array_column($before['tags'], 'id');
+        if (!contactTagsBelongToUser($pdo, $userId, $tagIds)) {
+            $pdo->rollBack();
+            apiContactValidationErrorResponse(['tag_ids' => 'Jedan ili više tagova nisu dostupni ovom nalogu.']);
+        }
+        $newTags = getContactTagSnapshotsForUser($pdo, $userId, $tagIds);
+
+        $changes = [];
+        foreach ([
+            'first_name' => ['label' => 'Ime'],
+            'last_name' => ['label' => 'Prezime'],
+            'phone' => ['label' => 'Telefon'],
+            'email' => ['label' => 'E-mail'],
+        ] as $field => $definition) {
+            if ($before[$field] !== $values[$field]) {
+                $changes[$field] = [
+                    'label' => $definition['label'],
+                    'old' => $before[$field],
+                    'new' => $values[$field],
+                ];
+            }
+        }
+
+        $newCity = ['id' => (int) $city['id'], 'name' => (string) $city['name']];
+        if ($before['city'] !== $newCity) {
+            $changes['city'] = ['label' => 'Grad', 'old' => $before['city'], 'new' => $newCity];
+        }
+
+        $oldTagIds = array_column($before['tags'], 'id');
+        $newTagIds = array_column($newTags, 'id');
+        if ($oldTagIds !== $newTagIds) {
+            $changes['tags'] = ['label' => 'Tagovi', 'old' => $before['tags'], 'new' => $newTags];
+        }
+
+        if ($changes !== []) {
+            $update = $pdo->prepare(
+                'UPDATE contacts
+                 SET first_name = :first_name, last_name = :last_name, phone = :phone,
+                     email = :email, phone_normalized = :phone_normalized,
+                     email_normalized = :email_normalized, city_id = :city_id,
+                     updated_at = UTC_TIMESTAMP()
+                 WHERE id = :contact_id AND user_id = :user_id AND deleted_at IS NULL'
+            );
+            $update->execute([
+                'first_name' => $values['first_name'],
+                'last_name' => $values['last_name'],
+                'phone' => $values['phone'],
+                'email' => $values['email'],
+                'phone_normalized' => normalizeContactPhone($values['phone']),
+                'email_normalized' => normalizeContactEmail($values['email']),
+                'city_id' => $cityId,
+                'contact_id' => $contactId,
+                'user_id' => $userId,
+            ]);
+            if (isset($changes['tags'])) {
+                synchronizeContactTags($pdo, $userId, $contactId, $tagIds);
+            }
+            recordContactHistoryEvent(
+                $pdo,
+                $userId,
+                $contactId,
+                $userId,
+                $actorEmail,
+                'contact_updated',
+                $changes,
+            );
+        }
+
+        $pdo->commit();
+    } catch (Throwable $exception) {
+        if ($pdo->inTransaction()) {
+            $pdo->rollBack();
+        }
+        throw $exception;
+    }
+
+    $contact = apiContactReadById($pdo, $userId, $contactId);
+    if ($contact === null) {
+        throw new RuntimeException('Updated API contact could not be loaded.');
+    }
+
+    return $contact;
 }

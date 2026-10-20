@@ -185,6 +185,34 @@ Excel može ukloniti nule sa početka telefona ili promeniti `+` vrednost. Pre u
 13. Proverite da novi kontakti imaju originalne tekstualne telefone i `phone_normalized`/`email_normalized`, da su vidljivi u aktivnoj listi i u postojećem pregledu duplikata. Ne nastaje događaj istorije niti se menjaju postojeći kontakti, tagovi ili komentari.
 14. Pokušajte prikaz CSV vrednosti poput `<script>` ili HTML atributa. U pregledu se prikazuju kao tekst; ne izvršavaju se.
 
+
+### Izvršeni test konkurentne potvrde
+
+Na dan 20.10.2026. test je izvršen u zasebnoj kopiji projekta i privremenoj lokalnoj bazi (PHP 8.5.11, MySQL 8.0.46). Testni nalog je kroz postojeći login, upload i review HTTP tok pripremio jedan staging batch iz CSV-a sa kontaktima `Race One` / `race1@example.test` i `Race Two` / `race2@example.test`. HTTP priprema je bila uzastopna; konkurentnost je proverena odvojeno, direktnim pozivom stvarne `completeContactImport()` funkcije.
+
+Dva nezavisna PHP CLI procesa otvorila su dve PDO konekcije. Privremeni DB trigger zadržao je prvu transakciju 20 sekundi tokom umetanja `Race One`; pre pokretanja drugog workera prva INSERT komanda je bila vidljiva u `information_schema.PROCESSLIST`. Dok prvi worker još bio u toj komandi, pokrenut je drugi. `performance_schema.data_lock_waits` pokazao je jedan aktivan InnoDB lock wait. To je očekivano jer funkcija prvo zaključava red korisnika (`lockUserForHistoryMutation()`), a tek zatim staging red: drugi pokušaj je čekao na tom vlasničkom zaključavanju, pa nakon prvog commit-a dobio rezultat `unavailable` za već potrošen batch.
+
+Rezultat: worker 1 `completed` sa 2 kontakta, worker 2 `unavailable` sa 0; PDO connection ID-jevi bili su različiti (614 i 617); stderr oba workera bio je prazan. Broj kontakata testnog korisnika pre potvrde bio je 0, posle 2; `Race One` i `Race Two` postoje po jednom, a staging batch više ne postoji. Nije bilo delimičnog importa ni neobrađene greške. HTTP paralelno nije testiran; ugrađeni PHP development server korišćen je samo za sekvencijalni login/upload/review tok.
+
+#### Ponavljanje u izolovanom okruženju
+
+1. Napravite zasebnu kopiju projekta i privremenu bazu, primenite sve migracije samo na tu bazu, napravite testnog korisnika i grad `Raceville`. Otvorite aplikaciju i kroz postojeći UI učitajte CSV sa dva reda iznad pa otvorite pregled. Ne delite raw batch token izvan privremenog testnog harness-a.
+2. U toj privremenoj bazi dodajte test-only trigger koji zadržava samo prvi kontakt unutar transakcije:
+
+   ```sql
+   CREATE TRIGGER csv_race_delay
+   BEFORE INSERT ON contacts
+   FOR EACH ROW
+   BEGIN
+       IF NEW.first_name = 'Race One' THEN
+           DO SLEEP(20);
+       END IF;
+   END;
+   ```
+
+3. Napravite privremeni PHP CLI worker izvan `public/` koji učitava temp kopiju `app/bootstrap.php` i `app/contact-import-helpers.php`, otvara `db()` konekciju i poziva `completeContactImport($pdo, $userId, $rawToken, $reviewFingerprint, false, false)`. Sačuvajte token i fingerprint samo u lokalnom privremenom fajlu i neka worker zapiše samo status, broj kontakata i `SELECT CONNECTION_ID()` u zaseban rezultatni fajl.
+4. Pokrenite worker 1 kao zaseban PHP proces. Sa drugom DB konekcijom sačekajte da njegov `INSERT INTO contacts` bude vidljiv u `information_schema.PROCESSLIST`; dok je taj upit aktivan, odmah pokrenite worker 2 sa istim batch podacima u drugom PHP procesu. Na MySQL 8.x proverite da `performance_schema.data_lock_waits` privremeno pokazuje čekanje. Ne koristite samo brzo uzastopno pokretanje niti jedan ugrađeni PHP server kao dokaz paralelnog HTTP izvršavanja.
+5. Sačekajte oba procesa, proverite `completed` / `unavailable`, različite connection ID-jeve, tačno po jedan red za svaki testni email i da batch više ne postoji. Uklonite trigger, testnog korisnika/podatke, privremenu bazu, kopiju projekta i sve privremene fajlove. Ne primenjujte ovaj postupak na hosting ili glavnu lokalnu bazu.
 ### Hosting redosled nakon lokalnog odobrenja
 
 Hosting backfill starih kontakata za V5.3 i dalje nije izvršen. Pre budućeg push-a koji objavljuje V5.5: napravite odobreni backup, primenite migraciju 009 preko privatnog odobrenog DB alata, proverite tabelu/indekse, pa tek onda objavite kod. Ne menjajte hosting `config.local.php`, ne stavljajte CSV/staging fajlove u web root i ne pravite javni backfill/cleanup endpoint. U V5.5 istekli batch-evi se čiste kroz zaštićeni import tok; hosting CLI backfill starih kontakata ostaje zasebna otvorena stavka.
@@ -227,7 +255,7 @@ Endpoint bez rewrite pravila: `GET /api/v1/me.php` (lokalno `http://127.0.0.1:80
 ### Otvorene stavke
 
 - Hosting backfill starih kontakata za V5.3 još nije izvršen.
-- Stvarni paralelni test CSV confirmation toka još nije izvršen.
+- Paralelna CSV potvrda je proverena na privremenoj lokalnoj bazi; vidi rezultat i ograničenja u V5.5 odeljku „Izvršeni test konkurentne potvrde“. Hosting backfill starih kontakata ostaje zasebna otvorena stavka.
 - Hosting migracija 010, Plesk Authorization header forwarding i HTTPS endpoint nisu provereni. Potvrđeno je da `CGIPassAuth On` izaziva HTTP 500 na hostingu i da je direktiva uklonjena. Ne vraćati je niti koristiti alternativni token kanal; ostaje potreban hosting administrator da podesi dozvoljeno prosleđivanje standardnog Authorization zaglavlja PHP-FPM-u.
 
 #### V5.6.4 — API lista i pojedinačni prikaz kontakta

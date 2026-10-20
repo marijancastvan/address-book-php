@@ -228,15 +228,33 @@ Endpoint bez rewrite pravila: `GET /api/v1/me.php` (lokalno `http://127.0.0.1:80
 
 - Hosting backfill starih kontakata za V5.3 još nije izvršen.
 - Stvarni paralelni test CSV confirmation toka još nije izvršen.
-- Hosting migracija 010, Plesk Authorization header forwarding i HTTPS endpoint nisu provereni. `.htaccess` u `public/api/` sadrži `CGIPassAuth On`; ta direktiva zahteva Apache 2.4.13+ i dozvolu za korišćenje u `.htaccess` prema `AllowOverride` pravilima. Ako posle objave dobijete HTTP 500, uklonite dodatu direktivu i proverite Apache error log; ne koristite uslovno pravilo koje bi tiho preskočilo direktivu.
+- Hosting migracija 010, Plesk Authorization header forwarding i HTTPS endpoint nisu provereni. Potvrđeno je da `CGIPassAuth On` izaziva HTTP 500 na hostingu i da je direktiva uklonjena. Ne vraćati je niti koristiti alternativni token kanal; ostaje potreban hosting administrator da podesi dozvoljeno prosleđivanje standardnog Authorization zaglavlja PHP-FPM-u.
 
-#### Hosting provera prosleđivanja Authorization zaglavlja
+#### V5.6.4 — API lista i pojedinačni prikaz kontakta
 
-Ove provere izvršiti tek nakon odobrenog deploy-a, preko HTTPS-a, na postojećem endpoint-u `GET /api/v1/me.php`. Hosting i Apache testovi u ovoj radnoj sesiji nisu izvršeni. Koristite samo privremeni terminalski placeholder za važeći token; ne zapisujte stvarni token u fajl, URL ili deljeni log.
+##### Izolovana priprema
 
-1. Pošaljite `Authorization: Bearer test`. Očekujte `401 application/json` i `error.code` vrednost `invalid_token`. Ako odgovor kaže `authentication_required`, zaglavlje i dalje ne stiže do PHP aplikacije.
-2. Pošaljite zahtev bez `Authorization` zaglavlja. Očekujte `401` JSON sa `error.code` vrednošću `authentication_required`.
-3. Pošaljite važeći, neistekao i neopozvan hosting token. Očekujte `200 application/json` sa `data.user_id` koji odgovara vlasniku tokena.
-4. Opozovite isti token kroz UI i ponovite zahtev. Očekujte `401` JSON sa `error.code` vrednošću `invalid_token`.
+1. Napravite novu privremenu lokalnu bazu, npr. `address_book_v564_test`, i posebnu privremenu kopiju projekta. Ne koristite bazu iz postojećeg `config.local.php`, glavnu lokalnu bazu ni hosting bazu.
+2. U privremenu bazu primenite migracije `001`–`010` redom. Ova faza nema novu migraciju. U kopiji projekta podesite lokalni config samo za privremenu bazu i pokrenite `php -S 127.0.0.1:8000 -t public`.
+3. Napravite dva test naloga A/B, nekoliko gradova i tagova, aktivne i obrisane kontakte za oba naloga, kao i API tokene za testiranje. Zabeležite ID-jeve testnih zapisa; ne zapisujte plaintext tokene u fajl ili izveštaj. Uklonite bazu i kopiju projekta po završetku.
 
-Primeri `curl.exe` nalaze se u `docs/API.md`. Pre objave napravite odobreni backup i primenite migraciju 010 privatnim DB alatom, proverite indeks/FK, zatim objavite kod i ručno proverite HTTPS API. Ne menjajte hosting `config.local.php`.
+##### HTTP testovi
+
+Koristite endpoint-e `GET /api/v1/contacts.php` i `GET /api/v1/contact.php?id=...` direktno, bez rewrite pravila. Tačni PowerShell `curl.exe` primeri i JSON struktura nalaze se u `docs/API.md`.
+
+1. Važeći token A: lista vraća samo kontakte A; kontakt B iz direktnog `id` zahteva vraća isti `404 contact_not_found` kao nepostojeći ID. Nevažeći token vraća `401 invalid_token`, nedostajući token `401 authentication_required`, a opozvani token `401 invalid_token`. Session cookie bez Bearer tokena ne autentifikuje zahtev.
+2. Podrazumevana lista sadrži samo aktivne kontakte. `view=deleted` vraća samo obrisane kontakte A. Pojedinačni endpoint može vratiti A-ov aktivan ili obrisan kontakt.
+3. Kombinujte `search`, `city_id`, `tag_id`, `date_from` i `date_to`; svaki uslov sužava isti skup za listu i `total`. Pokušajte tuđi city/tag ID: dobijate `400 invalid_parameter`, bez tuđih kontakata.
+4. Isprobajte sva četiri `sort` polja u oba smera, jednake vrednosti i više stranica. Redosled mora ostati stabilan; `page` izvan opsega vraća praznu listu i zadržava traženu stranicu u `meta`. `per_page` je 25 podrazumevano, prihvata najviše 100; `total_pages` je 0 kada nema rezultata.
+5. Pošaljite niz umesto skalara (`search[]=Ana`, `city_id[]=1`), nultu/negativnu/nebrojnu stranicu, `per_page=101`, neispravan/obrnut datum opseg, nepoznat sort/direction i neispravan `id`. Očekujte `400` JSON `invalid_parameter` sa srpskom porukom.
+6. Tuđi i nepostojeći ID pojedinačnog kontakta moraju dati isti 404 status i kod. Neispravan ID format daje 400. Pošaljite POST na oba endpoint-a: `405`, `Allow: GET`, JSON.
+7. Proverite da lista sa kontaktom koji ima više tagova i dalje sadrži jedan kontakt, a `total` ga broji jednom. JSON ne sme sadržati `phone_normalized` ili `email_normalized`. Svi odgovori su `application/json`, `Cache-Control: no-store`; neočekivana serverska greška je generička.
+8. Datumi su stringovi `YYYY-MM-DD HH:MM:SS` bez konverzije: `created_at` je u MySQL session vremenskoj zoni, a `deleted_at` predstavlja UTC `DATETIME`. Proverite da se vrednosti poklapaju sa bazom i da API nije promenio izvorno značenje.
+
+##### Plesk ograničenje
+
+Lokalni HTTP testovi ne dokazuju hosting prosleđivanje. Na potvrđenom Plesk-u `Authorization` zaglavlje ne stiže do PHP-a; `CGIPassAuth On` izazvao je HTTP 500 i uklonjen je. Ne vraćati direktivu i ne slati token kroz URL ili drugo zaglavlje. Hosting API provere čekaju dozvoljenu administratorsku konfiguraciju za prosleđivanje standardnog Authorization zaglavlja, pa tek onda HTTPS test važećim, nevažećim, nedostajućim i opozvanim tokenom.
+
+##### Izvršene lokalne provere
+
+Dana 2026-10-20 izvršeno je 21 izolovanih HTTP asercija nad privremenom bazom sa migracijama `001`–`010`, koristeći lokalni MySQL Server 8.0.46 i PHP 8.5.11. Prošle su provere tokena i session-cookie izolacije, vlasništva dva naloga, aktivnih/obrisanih i pojedinačnih kontakata, kombinovanih filtera, sva četiri sortiranja u oba smera, paginacije, neispravnih parametara, 404/405 i JSON polja/vremenskog formata. Privremena baza, nalozi i tokeni uklonjeni su po testu. Ovo ne potvrđuje kompatibilnost izvršavanja na MariaDB 5.5.68 niti prosleđivanje zaglavlja na Plesk-u; te provere ostaju otvorene.

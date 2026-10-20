@@ -78,6 +78,11 @@ $baseUrl = rtrim($config['app']['base_url'], '/');
                         <h2>Tagovi</h2>
                         <p>Upravljajte svojim tagovima.</p>
                     </a>
+                    <a class="feature-card feature-card-link" href="<?= escapeHtml($baseUrl) ?>/api-tokens.php">
+                        <p class="eyebrow">Integracije</p>
+                        <h2>API tokeni</h2>
+                        <p>Upravljajte svojim API tokenima</p>
+                    </a>
                 </section>
             </div>
         </main>

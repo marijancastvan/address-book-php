@@ -8,19 +8,29 @@
     margin-bottom: 0;
 }
 
+.api-tokens-page .page-header .eyebrow {
+    color: #8a6810;
+}
+
+.api-tokens-page .page-header h1 {
+    color: #6f5710;
+}
+
 .api-tokens-back {
     justify-self: start;
-    border-color: #cbd5e1;
-    color: #fff;
-    background: #203b6c;
+    border-color: #e8dfbf;
+    color: #5c480b;
+    background: #fffaf0;
 }
 
 .api-tokens-back:hover:not(:disabled) {
-    background: #172c50;
+    border-color: #d9c982;
+    color: #443507;
+    background: #fff5d8;
 }
 
 .api-tokens-back:focus-visible {
-    outline: 3px solid #8fb0ff;
+    outline: 3px solid #d7b84e;
     outline-offset: 3px;
 }
 
@@ -29,17 +39,17 @@
     display: grid;
     gap: 14px;
     padding: 20px;
-    border: 1px solid #d8e2f0;
+    border: 1px solid #ebe4ca;
     border-radius: 14px;
-    background: linear-gradient(120deg, #edf3fb, #f7f9fd 78%);
-    box-shadow: 0 6px 18px rgb(32 59 108 / 5%);
+    background: #fffefa;
+    box-shadow: 0 8px 26px rgb(23 37 84 / 5%);
 }
 
 .api-token-panel h2,
 .api-token-reveal h2,
 .api-token-item h3 {
     margin: 0;
-    color: #203b6c;
+    color: #6f5710;
 }
 
 .api-token-panel > p,
@@ -52,11 +62,14 @@
 .api-token-create-form {
     display: grid;
     grid-template-columns: minmax(0, 1fr) auto;
-    align-items: end;
-    gap: 14px;
+    align-items: start;
+    column-gap: 16px;
+    row-gap: 16px;
 }
 
 .api-token-create-form .field-group {
+    display: grid;
+    gap: 6px;
     min-width: 0;
 }
 
@@ -65,9 +78,30 @@
     min-height: 44px;
 }
 
+.api-token-create-form > .button-primary {
+    align-self: start;
+    margin-top: 27px;
+    border: 1px solid #c7a83d;
+    color: #473707;
+    background: #f7e7a7;
+    box-shadow: 0 3px 9px rgb(138 104 16 / 12%);
+}
+
+.api-token-create-form > .button-primary:hover:not(:disabled) {
+    border-color: #ad8d27;
+    color: #382b05;
+    background: #f2dc83;
+    box-shadow: 0 5px 13px rgb(138 104 16 / 18%);
+}
+
+.api-token-create-form > .button-primary:focus-visible {
+    outline: 3px solid #d7b84e;
+    outline-offset: 3px;
+}
+
 .api-token-reveal {
-    border-color: #e8c979;
-    background: #fff9e6;
+    border-color: #e5d79d;
+    background: #fffdf5;
 }
 
 .api-token-reveal code {
@@ -75,7 +109,7 @@
     max-width: 100%;
     padding: 13px;
     overflow-wrap: anywhere;
-    border: 1px solid #e5d6a9;
+    border: 1px solid #e5d79d;
     border-radius: 9px;
     color: #172033;
     background: #fff;
@@ -92,10 +126,10 @@
     min-height: 94px;
     place-items: center;
     padding: 16px;
-    border: 1px dashed #cbd5e1;
+    border: 1px dashed #ebe4ca;
     border-radius: 10px;
     color: #64748b;
-    background: #f8fafc;
+    background: #fffefa;
     text-align: center;
 }
 
@@ -114,9 +148,9 @@
     justify-content: space-between;
     gap: 16px;
     padding: 14px;
-    border: 1px solid #d8e2f0;
+    border: 1px solid #ebe4ca;
     border-radius: 10px;
-    background: #fff;
+    background: #fffefa;
 }
 
 .api-token-details {
@@ -138,6 +172,11 @@
     flex: 0 0 auto;
 }
 
+.api-token-revoke-form .button-danger:focus-visible {
+    outline: 3px solid #e8a5aa;
+    outline-offset: 3px;
+}
+
 .field-error {
     color: #9f1d2c;
 }
@@ -149,10 +188,29 @@
 
     .api-token-create-form > .button {
         justify-self: start;
+        margin-top: 0;
     }
 
     .api-token-item {
         align-items: flex-start;
         flex-direction: column;
     }
+}
+
+.sidebar .nav-link.active[href$="/api-tokens.php"] {
+    border: 1px solid #eee6c9;
+    color: #51430f;
+    background: #fffbed;
+    box-shadow: inset 3px 0 #d7b84e;
+}
+
+.sidebar .nav-link.active[href$="/api-tokens.php"]:hover {
+    border-color: #e7dba8;
+    color: #443707;
+    background: #fff6d9;
+}
+
+.sidebar .nav-link.active[href$="/api-tokens.php"]:focus-visible {
+    outline: 2px solid #c7a83d;
+    outline-offset: 2px;
 }

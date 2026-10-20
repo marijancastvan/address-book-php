@@ -34,7 +34,7 @@
 
 .feature-grid {
     display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(4, minmax(0, 1fr));
     gap: 18px;
     margin-top: 20px;
 }
@@ -61,6 +61,11 @@
     background: linear-gradient(145deg, #f3e8ff 0%, #faf5ff 78%, #fcfaff 100%);
 }
 
+.feature-card:nth-child(4) {
+    border-color: #e8dfbf;
+    background: linear-gradient(145deg, #fffaf0 0%, #fffdf7 78%, #fffefa 100%);
+}
+
 .feature-card .eyebrow {
     margin-bottom: 10px;
     font-size: 14px;
@@ -85,6 +90,11 @@
     color: #6b21a8;
 }
 
+.feature-card:nth-child(4) .eyebrow,
+.feature-card:nth-child(4) h2 {
+    color: #6f5710;
+}
+
 .feature-card-link {
     display: block;
     color: inherit;
@@ -104,6 +114,10 @@
 
 .feature-card-link:nth-child(3):hover {
     border-color: #c084fc;
+}
+
+.feature-card-link:nth-child(4):hover {
+    border-color: #d7b84e;
 }
 
 .feature-card-link:focus-visible {
